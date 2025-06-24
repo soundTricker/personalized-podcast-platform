@@ -16,6 +16,8 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 
+import google.auth
+import google.auth.transport.requests
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse, Response
 
@@ -131,6 +133,9 @@ async def get_podcast_audio(
         if "K_SERVICE" in os.environ and GCS_AVAILABLE:
             # Use GCS signed URL approach
             try:
+                credentials, _ = google.auth.default()
+                credentials.refresh(google.auth.transport.requests.Request())
+
                 # Get GCS URI from broadcast history
                 gcs_uri = broadcast_history.gcs_uri()
 
@@ -152,6 +157,8 @@ async def get_podcast_audio(
                     version="v4",
                     expiration=datetime.now() + timedelta(minutes=10),
                     method="GET",
+                    service_account_email=credentials.service_account_email,
+                    access_token=credentials.token
                 )
 
                 # Redirect to signed URL
