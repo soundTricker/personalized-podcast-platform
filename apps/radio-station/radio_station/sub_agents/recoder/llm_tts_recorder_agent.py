@@ -29,7 +29,7 @@ from pydub import AudioSegment
 
 from radio_station.model.radio_cast import RadioCast
 from radio_station.model.talk_script import TalkScriptSegment
-from radio_station.state_keys import RecorderState
+from radio_station.state_keys import GlobalState, RecorderState
 from radio_station.utils.artifact import list_artifact, save_artifact
 from radio_station.utils.audio import export_wav
 from radio_station.utils.instruction_provider import secret_instruction
@@ -68,7 +68,10 @@ class LLMTTSSpeakerAgent(BaseAgent):
     async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
         client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"), vertexai=False)
         retry = 0
-        model = "gemini-2.5-flash-preview-tts"
+
+        program = GlobalState.get_listener_program(ctx.session.state)
+
+        model = "gemini-2.5-pro-preview-tts" if program.pro_mode else "gemini-2.5-flash-preview-tts"
 
         instruction = await secret_instruction(
             "llm_tts_recorder_instruction",

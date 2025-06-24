@@ -63,6 +63,7 @@ class ListenerProgram(BaseModel):
     title: str
     description: str
     listener_id: str  # Reference to Listener.id
+    pro_mode: bool = False
 
     # Program details
     program_minutes: int = 10  # Default 10 minutes (renamed from duration_minutes)

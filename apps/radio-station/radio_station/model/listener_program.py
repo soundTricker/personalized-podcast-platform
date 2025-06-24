@@ -35,6 +35,7 @@ class ListenerProgram(BaseModel):
     program_minutes: int = Field(description="The number of minutes that the program will listen", ge=5)
     insert_music: bool = Field(description="Whether to insert music into the program", default=True)
     number_of_broadcast: int = Field(description="The number of broadcast this program", default=0)
+    pro_mode: bool = Field(description="Pro Mode")
 
     base_radio_casts: List[RadioCast] = Field(description="The radio casts that the program will listen", default=[])
 

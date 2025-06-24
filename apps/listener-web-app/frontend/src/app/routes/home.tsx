@@ -25,8 +25,8 @@ function HomePage() {
         <p className="text-xl text-gray-600">あなただけのAIポッドキャストを楽しもう</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-        <Card className="max-w-sm">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto text-center align-center justify-center place-items-center">
+        <Card className="max-w-md">
           <h5 className="text-2xl font-bold tracking-tight text-gray-900">
             パーソナライズされたコンテンツ
           </h5>
@@ -35,26 +35,26 @@ function HomePage() {
           </p>
         </Card>
 
-        <Card className="max-w-sm">
+        <Card className="max-w-md">
           <h5 className="text-2xl font-bold tracking-tight text-gray-900">
-            リスナープログラム
+            番組の管理
           </h5>
           <p className="font-normal text-gray-700">
-            あなた専用のポッドキャストプログラムを作成して管理できます。
+            あなた専用のポッドキャスト番組を作成して管理できます。
           </p>
           <div className="flex flex-col gap-2">
             <Button as={Link} to="/listener-programs/create">
-              新規プログラム作成
+              新規番組作成
             </Button>
             <Button color="light" as={Link} to="/listener-programs">
-              マイプログラム一覧
+              マイ番組一覧
             </Button>
           </div>
         </Card>
 
-        <Card className="max-w-sm">
+        <Card className="max-w-md">
           <h5 className="text-2xl font-bold tracking-tight text-gray-900">
-            プラットフォームについて
+            PPPについて
           </h5>
           <p className="font-normal text-gray-700">
             PPPの詳細や使い方について詳しく知りたい方はこちら。
