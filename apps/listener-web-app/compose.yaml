@@ -1,0 +1,96 @@
+# Copyright 2025 Keisuke Tominaga a.k.a soundTricker
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: ppp
+services:
+  backend:
+    platform: linux/amd64
+    build:
+      cache_from:
+        - asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/backend:latest
+      context: ./backend
+      dockerfile: Dockerfile
+      tags:
+        - asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/backend:latest
+      platforms:
+        - linux/amd64
+    depends_on:
+      - firebase-emulator
+    volumes:
+      - ${GOOGLE_APPLICATION_CREDENTIALS}:/key.json
+    ports:
+      - "8888:8888"
+    env_file:
+      - .env
+    environment:
+      - PORT=8888
+      - ENVIRONMENT=development
+      - FIRESTORE_EMULATOR_HOST=firebase-emulator:9199
+      - FIREBASE_AUTH_EMULATOR_HOST=firebase-emulator:9099
+      - PYTHONPATH=/app
+      - GOOGLE_APPLICATION_CREDENTIALS=/key.json
+    # Enable hot reload for development
+#    command: /bin/bash -c "uvicorn ppp.main:app --reload --reload-dir ppp --host 0.0.0.0 --port 8000"
+    # Healthcheck to ensure the API is running
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+  frontend:
+    platform: linux/amd64
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      tags:
+        - asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/frontend:latest
+      platforms:
+        - linux/amd64
+      cache_from:
+        - asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/frontend:latest
+    volumes:
+      - ./frontend/start.sh:/app/start.sh
+    depends_on:
+      - firebase-emulator
+#    entrypoint: "bash"
+#    tty: true
+    ports:
+      - "8881:8881"
+    environment:
+      - PORT=8881
+      - ENVIRONMENT=development
+      - FIRESTORE_EMULATOR_HOST=firebase-emulator:9199
+      - FIREBASE_AUTH_EMULATOR_HOST=firebase-emulator:9099
+
+  # Firebase emulator for local development
+  firebase-emulator:
+    image: andreysenov/firebase-tools
+    ports:
+      - "4000:4000"  # Emulator Suite UI
+      - "8080:8080"  # Firebase Hosting
+      - "9099:9099"  # Firebase Auth
+      - "8085:8085"  # Firebase Functions
+      - "9199:9199"  # Firestore
+    volumes:
+      - ./backend/firebase.json:/home/node/firebase.json
+      - ./backend/.firebaserc:/home/node/.firebaserc
+      - ./backend/firebase-data:/home/node/firebase-data
+    environment:
+      - FIREBASE_TOKEN=${FIREBASE_TOKEN}
+    command: firebase emulators:start --project ppp-listener-web-app --import /home/node/firebase-data/exported  --export-on-exit
+
+networks:
+  default:
+    name: ppp-prod-network

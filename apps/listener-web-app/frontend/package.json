@@ -1,0 +1,60 @@
+{
+  "name": "ppp-frontend",
+  "version": "1.0.0",
+  "description": "Personalized Podcast Platform Frontend",
+  "type": "module",
+  "scripts": {
+    "dev": "react-router dev",
+    "build": "react-router build",
+    "start": "react-router-serve build/server/index.js",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "postinstall": "flowbite-react patch",
+    "typegen": "react-router typegen",
+    "codegen": "npx openapi-rq -i http://0.0.0.0:8000/openapi.json -o generated/api/ --enums typescript "
+  },
+  "keywords": [
+    "podcast",
+    "ai",
+    "personalized"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@7nohe/openapi-react-query-codegen": "^1.6.2",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@hey-api/client-fetch": "^0.13.0",
+    "@react-router/node": "^7.6.2",
+    "@react-router/serve": "^7.6.2",
+    "@tailwindcss/vite": "^4.1.8",
+    "@tanstack/react-form": "^1.12.2",
+    "@tanstack/react-query": "^5.80.6",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@typescript-eslint/eslint-plugin": "^8.34.0",
+    "@typescript-eslint/parser": "^8.34.0",
+    "eslint": "^9.28.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "firebase": "^11.9.1",
+    "flowbite": "^3.1.2",
+    "flowbite-react": "^0.11.8",
+    "isbot": "^5",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-icons": "^5.5.0",
+    "react-markdown": "^10.1.0",
+    "react-router": "^7.6.2",
+    "remark-gfm": "^4.0.1",
+    "tailwindcss": "^4.1.8",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "zod": "^3.25.63"
+  },
+  "devDependencies": {
+    "@react-router/dev": "^7.6.2",
+    "@tanstack/react-query-devtools": "^5.80.7",
+    "vite-tsconfig-paths": "^5.1.4"
+  }
+}

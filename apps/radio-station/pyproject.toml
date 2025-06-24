@@ -1,0 +1,102 @@
+[project]
+name = "radio-station"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiogoogle>=5.15.0",
+    "aiohttp>=3.11.18",
+    "fastapi>=0.115.12",
+    "feedparser>=6.0.11",
+    "google-adk==1.4.2",
+    "google-api-python-client>=2.169.0",
+    "google-cloud-aiplatform[adk,agent-engines]>=1.98.0",
+    "google-cloud-aiplatform[evaluation]>=1.98.0",
+    "google-cloud-firestore>=2.21.0",
+    "google-cloud-logging>=3.12.1",
+    "google-cloud-storage>=2.18.0",
+    "google-cloud-texttospeech>=2.27.0",
+    "google-genai>=1.21.1",
+    "grpcio>=1.71.0",
+    "litellm>=1.72.6.post1",
+    "opentelemetry-api>=1.32.1",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.32.1",
+    "opentelemetry-instrumentation-fastapi>=0.53b1",
+    "opentelemetry-sdk>=1.32.1",
+    "pandas>=2.2.3",
+    "pydantic[email]>=2.11.5",
+    "pydub>=0.25.1",
+    "pytest-asyncio>=1.0.0",
+    "pytest-dotenv>=0.5.2",
+    "ruff>=0.11.12",
+    "tabulate>=0.9.0",
+    "weatherapipython",
+]
+
+[tool.ruff]
+# Enable pycodestyle (E), Pyflakes (F), isort (I), and more
+select = ["E", "F", "I", "W", "N", "B", "C4", "ARG", "SIM"]
+ignore = []
+
+# Allow autofix for all enabled rules (when `--fix`) is provided
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude a variety of commonly ignored directories
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+# Same as Black
+line-length = 200
+
+# Allow unused variables when underscore-prefixed
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+# Target Python 3.12
+target-version = "py312"
+
+[tool.ruff.mccabe]
+# Unlike Flake8, default to a complexity level of 10
+max-complexity = 10
+
+[tool.ruff.isort]
+known-third-party = ["feedparser", "google", "pydantic"]
+
+[tool.ruff.format]
+# Use double quotes for strings
+quote-style = "double"
+# Indent with 4 spaces
+indent-style = "space"
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+env_files = [
+    ".env",
+    ".test.env",
+    ".deploy.env"
+]
+
+[tool.uv.sources]
+weatherapipython = { git = "https://github.com/weatherapicom/python.git" }

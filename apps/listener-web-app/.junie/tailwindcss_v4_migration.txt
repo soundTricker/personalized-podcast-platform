@@ -1,0 +1,119 @@
+Tailwind CSS v4.0へのアップグレードガイド
+
+概要
+Tailwind CSS v4.0はメジャーバージョンアップであり、v3からのアップグレードにはいくつかの変更が必要です。このガイドでは、プロジェクトをv3からv4にアップグレードするために必要なすべての手順を説明します。
+
+注意: Tailwind CSS v4.0はSafari 16.4+、Chrome 111+、Firefox 128+を対象としています。古いブラウザをサポートする必要がある場合は、ブラウザのサポート要件が変更されるまでv3.4を使用し続けてください。
+
+アップグレードツール
+v3からv4へのプロジェクトのアップグレードには、アップグレードツールを使用すると、依存関係の更新、設定ファイルのCSSへの移行、テンプレートファイルの変更など、移行プロセスの大部分を自動化できます。
+
+実行コマンド:
+npx @tailwindcss/upgrade
+
+注意点:
+
+Node.js 20以上が必要です。
+新しいブランチで実行し、差分を注意深く確認して、ブラウザでプロジェクトをテストすることをお勧めします。
+複雑なプロジェクトでは手動での微調整が必要になる場合があります。
+ツールが対応していない変更点もあるため、v4のすべての破壊的変更点を確認することをお勧めします。
+手動でのアップグレード
+PostCSSの使用
+v4では、PostCSSプラグインは @tailwindcss/postcss パッケージに分離されました。また、@import とベンダープレフィックスは自動的に処理されるため、postcss-import と autoprefixer は削除できます。
+
+postcss.config.mjsの変更例:
+// 変更前
+export default {
+plugins: {
+'postcss-import': {},
+tailwindcss: {},
+autoprefixer: {},
+},
+};
+
+// 変更後
+export default {
+plugins: {
+'@tailwindcss/postcss': {},
+},
+};
+
+Viteの使用
+Viteを使用している場合は、パフォーマンス向上と開発者エクスペリエンス向上のため、新しいViteプラグインに移行することをお勧めします。
+
+vite.config.tsの変更例:
+import { defineConfig } from 'vite';
+import tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+plugins: [
+tailwindcss(),
+],
+});
+
+Tailwind CLIの使用
+v4では、Tailwind CLIは @tailwindcss/cli パッケージに分離されました。ビルドコマンドを新しいパッケージを使用するように更新してください。
+
+コマンドの変更例:
+
+変更前
+npx tailwindcss -i input.css -o output.css
+
+変更後
+npx @tailwindcss/cli -i input.css -o output.css
+
+v3からの変更点
+ブラウザ要件
+v4はモダンブラウザを対象としており、古いブラウザでは動作しません。古いブラウザをサポートする必要がある場合は、v3.4を使用してください。
+
+@tailwind ディレクティブの削除
+v4では、@tailwind ディレクティブの代わりに、通常のCSSの @import を使用してTailwindをインポートします。
+
+CSSの変更例:
+/* 変更前 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 変更後 */
+@import "tailwindcss";
+
+非推奨ユーティリティの削除
+v3で非推奨となり、数年間文書化されていなかったユーティリティが削除されました。以下はその一部と代替案です。
+
+bg-opacity-* -> bg-black/50 のようなopacity修飾子を使用
+text-opacity-* -> text-black/50 のようなopacity修飾子を使用
+flex-shrink-* -> shrink-*
+flex-grow-* -> grow-*
+overflow-ellipsis -> text-ellipsis
+ユーティリティ名の変更
+一貫性と予測可能性を高めるために、以下のユーティリティ名が変更されました。
+
+shadow-sm -> shadow-xs
+shadow -> shadow-sm
+blur-sm -> blur-xs
+blur -> blur-sm
+rounded-sm -> rounded-xs
+rounded -> rounded-sm
+outline-none -> outline-hidden
+デフォルト値の変更
+
+ring ユーティリティ: デフォルトの幅が 3px から 1px に変更されました。
+border-*, divide-* ユーティリティ: デフォルトの色が gray-200 から currentColor に変更されました。
+ring ユーティリティ: デフォルトの色が blue-500 から currentColor に変更されました。
+space-between セレクタ
+パフォーマンス向上のため、space-x-* と space-y-* ユーティリティが使用するセレクタが変更されました。これにより、インライン要素を使用していたり、子要素に他のマージンを追加して間隔を調整していた場合に、プロジェクトで変更が見られる可能性があります。
+
+その他の変更点
+
+バリアントとグラデーション: バリアントでグラデーションの一部を上書きした場合の動作が変更されました。
+container 設定: center や padding といった設定オプションが廃止され、@utility ディレクティブでカスタマイズするようになりました。
+Preflight の変更: プレースホルダーのデフォルト色や、ボタンのカーソルなどが変更されました。
+プレフィックス: プレフィックスはバリアントのようにクラス名の先頭に付くようになりました。
+カスタムユーティリティの追加: @layer utilities や @layer components の代わりに、@utility APIが導入されました。
+バリアントのスタック順序: v3の右から左への適用順が、v4では左から右に変更されました。
+任意値の変数: CSS変数を任意値として使用する際の構文が変更されました。
+モバイルでのホバースタイル: hover バリアントは、プライマリ入力デバイスがホバーをサポートしている場合にのみ適用されるようになりました。
+JavaScript設定ファイル: JavaScript設定ファイルは自動的に検出されなくなり、@config ディレクティブで明示的に読み込む必要があります。
+@apply の使用: Vue、Svelte、CSSモジュールなどで @apply を使用する場合、@reference を使用して定義をインポートする必要があります。
+このガイドは、Tailwind CSS v4.0へのアップグレードを支援するためのものです。詳細については、公式ドキュメントを参照してください。

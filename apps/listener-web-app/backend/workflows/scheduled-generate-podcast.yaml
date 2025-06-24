@@ -1,0 +1,212 @@
+# Copyright 2025 Keisuke Tominaga a.k.a soundTricker
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Google Cloud Workflows for scheduled podcast generation
+# This workflow runs daily to generate podcasts for active listener programs
+
+main:
+  steps:
+    # Step 1: Initialize variables
+    - 変数初期化:
+        assign:
+          - projectId: "ai-agent-sample-1"
+          - backendUrl: "https://ppp-private-api-813188275284.asia-northeast1.run.app"
+          - nowTimestamp: ${sys.now()}
+          - now: ${time.format(nowTimestamp)}
+          - dayOfWeekMap:
+                1: "monday"
+                2: "tuesday"
+                3: "wednesday"
+                4: "thursday"
+                5: "friday"
+                6: "saturday"
+                7: "sunday"
+    # Step 2: Get daily broadcast programs from Firestore
+    - 曜日の取得:
+        call: http.get
+        args:
+            url: ${backendUrl + "/private/api/v1/day-of-week"}
+            query:
+              target_timestamp: ${nowTimestamp}
+            auth:
+                type: OIDC
+                audience: ${backendUrl}
+        result: dayOfWeekResponse
+    - 曜日の設定:
+        assign:
+            - dayOfWeek: ${dayOfWeekMap[dayOfWeekResponse.body.dayOfWeek + ""]}
+    - 日時配信プログラムの取得:
+        call: googleapis.firestore.v1.projects.databases.documents.runQuery
+        args:
+          parent: ${"projects/" + projectId + "/databases/(default)/documents"}
+          body:
+            structuredQuery:
+              from:
+                - collectionId: "ppp-listener_programs"
+              where:
+                fieldFilter:
+                  field:
+                    fieldPath: "broadcastSchedule"
+                  op: "EQUAL"
+                  value:
+                    stringValue: "daily"
+        result: dailyProgramsResponse
+
+    # Step 3: Get weekly broadcast programs from Firestore
+    - 週次配信プログラムの取得:
+        call: googleapis.firestore.v1.projects.databases.documents.runQuery
+        args:
+          parent: ${"projects/" + projectId + "/databases/(default)/documents"}
+          body:
+            structuredQuery:
+              from:
+                - collectionId: "ppp-listener_programs"
+              where:
+                compositeFilter:
+                  op: "AND"
+                  filters:
+                    - fieldFilter:
+                        field:
+                          fieldPath: "broadcastSchedule"
+                        op: "EQUAL"
+                        value:
+                          stringValue: "weekly"
+                    - fieldFilter:
+                        field:
+                          fieldPath: "broadcastDayofweek"
+                        op: "ARRAY_CONTAINS"
+                        value:
+                          stringValue: ${dayOfWeek}
+        result: weeklyProgramsResponse
+    # Step 4: Extract active program IDs
+    - 配信対象プログラムのマージ:
+        assign:
+          - listenerProgramIds: []
+          # Process daily programs
+          - dailyPrograms: ${default(dailyProgramsResponse, [])}
+          # Process weekly programs
+          - weeklyPrograms: ${default(weeklyProgramsResponse, [])}
+          # Combine all programs
+          - allPrograms: ${list.concat(dailyPrograms, weeklyPrograms)}
+
+    # Step 5: Filter active programs and extract IDs
+    - 配信対象のフィルタリング:
+        for:
+          value: doc
+          in: ${allPrograms}
+          steps:
+            - プログラムがアクティブかチェック:
+                switch:
+                  - condition: ${default(map.get(doc, ["document", "fields", "status", "stringValue"]), "") == "active"}
+                    steps:
+                      - 対象のIDを集計:
+                          assign:
+                            - programId: ${text.split(doc.document.name, "/")[6]}
+                            - listenerProgramIds: ${list.concat(listenerProgramIds, programId)}
+
+
+    # Step 6: Process programs in parallel
+    - 各プログラムごとの作成処理:
+        parallel:
+          for:
+            value: listenerProgramId
+            in: ${listenerProgramIds}
+            steps:
+                - ループ内変数初期化:
+                    assign:
+                        - failCheck: 0
+                        - waitTime: 300
+                - プログラム作成:
+                    steps:
+                    # Step 6.1: Create broadcast history
+                    - 配信の作成:
+                        call: http.post
+                        args:
+                            url: ${backendUrl + "/private/api/v1/listener-programs/" + listenerProgramId + "/broadcast_history"}
+                            auth:
+                                type: OIDC
+                                audience: ${backendUrl}
+                        result: historyResponse
+
+                    # Step 6.2: Create Cloud Tasks task
+                    - 配信コンテンツ作成非同期タスク作成:
+                        call: googleapis.cloudtasks.v2.projects.locations.queues.tasks.create
+                        args:
+                            parent: ${"projects/" + projectId + "/locations/asia-northeast1/queues/podcast"}
+                            body:
+                                task:
+                                    dispatchDeadline: "1800s"
+                                    httpRequest:
+                                        httpMethod: "POST"
+                                        url: ${backendUrl + "/__tasks__/generate-podcast?listener_program_id=" + listenerProgramId + "&broadcast_history_id=" + historyResponse.body.id}
+                                        oidcToken:
+                                            audience: ${backendUrl}
+                                            serviceAccountEmail: "813188275284-compute@developer.gserviceaccount.com"
+
+                    # Step 6.3: Wait and check status loop
+                    - ステータスチェックループ:
+                        steps:
+                            - 作成待ち:
+                                call: sys.sleep
+                                args:
+                                    seconds: ${waitTime}
+
+                            - 作成状況取得:
+                                call: http.get
+                                args:
+                                    url: ${backendUrl + "/private/api/v1/listener-programs/" + listenerProgramId + "/broadcast_history/" + historyResponse.body.id}
+                                    auth:
+                                        type: OIDC
+                                        audience: ${backendUrl}
+                                result: statusResponse
+                            - 待ち時間更新:
+                                assign:
+                                    - waitTime: 60
+                            - 作成状況チェック:
+                                switch:
+                                - condition: ${statusResponse.body.status == "failure"}
+                                  steps:
+                                    - 失敗カウントアップ:
+                                        assign:
+                                            - failCheck: ${failCheck + 1}
+                                    - 失敗数チェック:
+                                        switch:
+                                        - condition: ${failCheck > 5}
+                                          next: continue
+                                  next: ステータスチェックループ
+                                - condition: ${statusResponse.body.status == "success"}
+                                  next: ステータスチェック完了
+                                - condition: true
+                                  next: ステータスチェックループ
+
+                            - ステータスチェック完了:
+                                assign:
+                                - finalStatus: ${statusResponse.body.status}
+
+                    # Step 6.4: Send notification mail
+                    - ステータスチェック:
+                        switch:
+                          - condition: ${finalStatus == "failure"}
+                            next: continue
+                    - 通知送信:
+                        call: http.post
+                        args:
+                            url: ${backendUrl + "/private/api/v1/listener-programs/" + listenerProgramId + "/broadcast_history/" + historyResponse.body.id + "/send-mail"}
+                            auth:
+                                type: OIDC
+                                audience: ${backendUrl}
+
+    # Step 7: Complete workflow
+    - 完了:
+        return: "Podcast generation workflow completed successfully"

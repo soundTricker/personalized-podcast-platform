@@ -1,0 +1,5 @@
+.env
+*/node_modules
+.uv
+firebase-data
+__pycache__

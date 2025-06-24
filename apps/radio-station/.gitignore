@@ -1,0 +1,26 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.env
+.env*
+.env_for_deploy
+.env_for_deploy_run.yaml
+
+**/.DS_Store
+.idea
+.ruff_cache
+**/conftest.py
+.pytest
+*.mp3
+test.log
+.agentengine.json
+
+radio_station/ffmpeg-7.0.2-amd64-static
+*.wav

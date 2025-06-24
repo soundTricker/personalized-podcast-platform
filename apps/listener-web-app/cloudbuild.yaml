@@ -1,0 +1,177 @@
+# Copyright 2025 Keisuke Tominaga a.k.a soundTricker
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+steps:
+  # Deploy workflows
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'deploy-workflow'
+    waitFor: ['-']
+    args:
+      - 'workflows'
+      - 'deploy'
+      - 'ScheduledGeneratePodcast'
+      - '--source=./scheduled-generate-podcast.yaml'
+      - '--location=asia-northeast1'
+    dir: apps/listener-web-app/backend/workflows
+  # Pull latest images
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'pull-backend-latest'
+    waitFor: ['-']
+    entrypoint: 'bash'
+    args: ['-c', 'docker pull asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/backend:latest || exit 0']
+
+  # Pull latest images
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'pull-frontend-build-latest'
+    waitFor: ['-']
+    entrypoint: 'bash'
+    args: ['-c', 'docker pull asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/frontend:build-latest || exit 0']
+
+  # Pull latest images
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'pull-frontend-latest'
+    waitFor: ['-']
+    entrypoint: 'bash'
+    args: ['-c', 'docker pull asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/frontend:latest || exit 0']
+
+
+  # Build backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-backend'
+    waitFor: ['pull-backend-latest']
+    args:
+      - 'build'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/backend:latest'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/backend:$COMMIT_SHA'
+      - '--cache-from'
+      - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/backend:latest'
+      - './backend'
+    dir: apps/listener-web-app
+
+  # Build frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: apps/listener-web-app
+    id: 'build-frontend'
+    waitFor: ['pull-frontend-latest', 'pull-frontend-build-latest']
+    args:
+      - 'build'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/frontend:latest'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/frontend:$COMMIT_SHA'
+      - '--cache-from'
+      - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/frontend:build-latest'
+      - '--cache-from'
+      - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/frontend:latest'
+      - './frontend'
+
+  # Save nginx.conf to Secret Manager
+  - name: 'gcr.io/cloud-builders/gcloud'
+    dir: apps/listener-web-app
+    waitFor: ['-']
+    id: 'save-nginx-config'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cat nginx.conf | gcloud secrets versions add nginx-conf-secret --data-file=-
+
+
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: apps/listener-web-app
+    id: 'push-backend'
+    waitFor:
+      - build-backend
+    args:
+      - 'push'
+      - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/backend:$COMMIT_SHA'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: apps/listener-web-app
+    id: 'push-frontend'
+    waitFor:
+      - build-frontend
+    args:
+      - 'push'
+      - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/frontend:$COMMIT_SHA'
+
+  # Create a temporary services file with COMMIT_SHA substituted
+  - name: 'gcr.io/cloud-builders/gcloud'
+    dir: apps/listener-web-app
+    id: 'prepare-services-file'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        sed "s/__COMMIT_SHA__/$COMMIT_SHA/g" services.yaml > services-deploy.yaml
+  # Deploy to Cloud Run Private API
+  - name: 'gcr.io/cloud-builders/gcloud'
+    dir: apps/listener-web-app
+    id: 'deploy-cloud-run-private-api'
+    waitFor:
+      - push-backend
+    args:
+      - 'run'
+      - 'deploy'
+      - 'ppp-private-api'
+      - '--image=asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/backend:$COMMIT_SHA'
+      - '--no-allow-unauthenticated'
+      - '--set-env-vars=OTEL_EXPORTER_OTLP_ENDPOINT=telemetry.googleapis.com:443,BATCH_MODE=true,FRONTEND_URL=https://ppp-jjoi5qw7aa-an.a.run.app,API_BASE_URL=https://ppp-jjoi5qw7aa-an.a.run.app'
+      - '--set-secrets=GOOGLE_CLOUD_PROJECT=GOOGLE_CLOUD_PROJECT:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,BACKEND_URL=BACKEND_URL:latest,ARTIFACT_BUCKET=ARTIFACT_BUCKET:latest,AGENT_ENGINE_ID=AGENT_ENGINE_ID:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,GOOGLE_CLOUD_LOCATION=GOOGLE_CLOUD_LOCATION:latest,GOOGLE_STORAGE_AUDIO_EXPORT_BUCKET=GOOGLE_STORAGE_AUDIO_EXPORT_BUCKET:latest,SECRET_KEY=SECRET_KEY:latest'
+      - '--region=asia-northeast1'
+      - '--platform=managed'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    dir: apps/listener-web-app
+    id: 'deploy-cloud-run'
+    waitFor:
+      - prepare-services-file
+      - push-backend
+      - push-frontend
+    args:
+      - 'run'
+      - 'services'
+      - 'replace'
+      - 'services-deploy.yaml'
+      - '--region=asia-northeast1'
+      - '--platform=managed'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: apps/listener-web-app
+    id: 'tag-cache-state-frontend'
+    waitFor:
+      - build-frontend
+    script: |
+      #!/usr/bin/env bash
+      docker tag $(docker images --filter 'label=frontend_state=1' -q | head -n 1) asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/frontend:build-latest
+
+
+# Push images to Artifact Registry
+images:
+  - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/backend:latest'
+  - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/backend:$COMMIT_SHA'
+  - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/frontend:latest'
+  - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/frontend:$COMMIT_SHA'
+  - 'asia-northeast1-docker.pkg.dev/ai-agent-sample-1/ppp-registry/frontend:build-latest'
+
+# Set timeout for the build
+timeout: '1800s'
+
+# Use faster machine type for build
+options:
+  logging: CLOUD_LOGGING_ONLY
