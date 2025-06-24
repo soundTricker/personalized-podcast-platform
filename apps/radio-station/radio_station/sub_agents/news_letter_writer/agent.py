@@ -111,4 +111,5 @@ class NewsLetterWriterAgent(LlmAgent):
 
     def save_content(self, callback_context: CallbackContext, llm_response: LlmResponse) -> None:
         logger.info(f"Generated New Letter: {llm_response.content.parts[-1].text}")
-        callback_context.state.update({NewsLetterWriterState.CONTENTS: llm_response.content.parts[-1].text})
+
+        callback_context.state.update({NewsLetterWriterState.CONTENTS: llm_response.content.parts[-1].text.replace("```markdown", "").replace("```", "")})
