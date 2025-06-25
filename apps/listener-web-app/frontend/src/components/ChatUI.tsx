@@ -165,6 +165,7 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
     }
 
     const handleSSE = (callback?: () => void) => (response: Response) => {
+        setSending(false);
         const reader = response.body?.getReader();
         const decoder = new TextDecoder('utf-8');
         let prevLine: string = '';
@@ -173,7 +174,6 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
                 .then(({done, value}) => {
                     if (done) {
                         callback && callback();
-                        setSending(false);
                         return;
                     }
                     const chunk = decoder.decode(value, {stream: true});
@@ -189,7 +189,7 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
                         try {
                             if (!data.startsWith("{") && data.endsWith("}")
                                 && prevLine && prevLine.startsWith("{")) {
-                                data += prevLine;
+                                data = prevLine + data;
                             }
                             const event: AdkEvent & { detail?: string, error?: string } = JSON.parse(data);
                             prevLine = '';
@@ -242,7 +242,7 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
                                 })
                             }
                         } catch (e) {
-                            prevLine += data;
+                            prevLine = data;
                             console.error(e);
                             return;
                         }
@@ -455,6 +455,7 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
                         {(!sessionId) && <Spinner size="xl"/>}
                         {messages.map((message) => MessageItem(message))}
                         {partialMessage && MessageItem(partialMessage)}
+                        {sending && <Spinner size="xl"/>}
                         <div ref={messagesEndRef}/>
                     </div>
 
