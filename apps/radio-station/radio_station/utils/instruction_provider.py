@@ -14,6 +14,7 @@
 
 import logging
 import os
+from typing import Awaitable, Callable
 
 from google.adk.agents.llm_agent import InstructionProvider
 from google.adk.agents.readonly_context import ReadonlyContext
@@ -22,8 +23,10 @@ from google.cloud import secretmanager_v1 as secretmanager
 
 logger = logging.getLogger(__name__)
 
+__cache = {}
 
-def secret_instruction(secret_key: str, default: str) -> InstructionProvider:
+
+def secret_instruction(secret_key: str, default: str, replacer: Callable[[ReadonlyContext, str], str | Awaitable[str]] | None = None) -> InstructionProvider:
     """
     Google Cloud Secret Managerから最新バージョンのシークレットを非同期で取得します。
 
@@ -34,6 +37,7 @@ def secret_instruction(secret_key: str, default: str) -> InstructionProvider:
     Args:
         secret_key (str): 取得するシークレットのID（名前）。
         default (str): シークレットの取得に失敗した場合に返すデフォルトの文字列。
+        replacer: 更に置換処理を加える場合に設定
 
     Returns:
         str: 取得したシークレットの文字列、またはデフォルト値。
@@ -55,12 +59,21 @@ def secret_instruction(secret_key: str, default: str) -> InstructionProvider:
             # アクセスするシークレットバージョンの完全なリソース名を構築します。
             # 'latest' は常に最新のバージョンを指します。
             name = f"projects/{project_id}/secrets/{secret_key}/versions/latest"
+            cache_key = f"{ctx.invocation_id}_{name}"
 
-            # シークレットバージョンに非同期でアクセスします。
-            response = await client.access_secret_version(request={"name": name})
+            if cache_key in __cache:
+                payload = __cache[cache_key]
+            else:
+                # シークレットバージョンに非同期でアクセスします。
+                response = await client.access_secret_version(request={"name": name})
 
-            # レスポンスのペイロード（シークレットの値）をUTF-8でデコードして返します。
-            payload = response.payload.data.decode("UTF-8")
+                # レスポンスのペイロード（シークレットの値）をUTF-8でデコードして返します。
+                payload = response.payload.data.decode("UTF-8")
+                __cache[cache_key] = payload
+
+            if replacer:
+                payload = await replacer(ctx, payload)
+
             return payload
 
         except exceptions.NotFound:

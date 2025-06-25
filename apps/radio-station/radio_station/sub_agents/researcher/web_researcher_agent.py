@@ -15,17 +15,17 @@
 import asyncio
 import datetime
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 import aiohttp
 from aiohttp import ClientTimeout
 from google.adk.agents import Agent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models import LlmRequest, LlmResponse
-from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from pydantic import Field
 
-from radio_station.constants import THINKING_MODEL
+from radio_station.constants import GENERIC_MODEL
 from radio_station.model.base_model import BaseModel
 from radio_station.model.listener_program_segment import ListenerProgramWebSegment
 from radio_station.state_keys import ResearcherState
@@ -56,14 +56,14 @@ class WebResearchAgent(Agent):
         super().__init__(
             task_id=task_id,
             segment=segment,
-            model=THINKING_MODEL,
+            model=GENERIC_MODEL,
             name=f"WebResearchAgent_{task_id}",
             instruction=f"""
             You are an AI Web Investigation Assistant specializing to make a radio program.
 
             Your tasks are:
             1. Read and analyze fetched HTML Contents in `<HTMLContents>{{HTML CONTENT LIST}}</HTMLContents>`.
-                1-1. When HTML Contents included publish datetime/released datetime/updated datetime information, read only content after [Last Read Datetime Timestamp].
+                1-1. When HTML Contents included publish datetime/released datetime/updated datetime information, read only content after [Last Read Datetime].
             2. Make a investigation summary and investigation description of the contents.
 
             Output Format:
@@ -78,15 +78,20 @@ class WebResearchAgent(Agent):
                 - 'url': The content url
                 - 'summary': The short string summary of the entry(item)
                 - 'description': The description of the feed
+                
+            [Current Datetime]
+            {datetime.datetime.now(tz=ZoneInfo("Asia/Tokyo")).isoformat()}
 
-            [Last Read Datetime Timestamp]
-            {datetime.datetime.fromtimestamp(segment.last_read_timestamp or 0).isoformat()}
+            [Last Read Datetime]
+            {datetime.datetime.fromtimestamp(segment.last_read_timestamp or 0).astimezone(ZoneInfo("Asia/Tokyo")).isoformat()}
         """,
             generate_content_config=types.GenerateContentConfig(frequency_penalty=-2.0),
-            planner=BuiltInPlanner(thinking_config=types.ThinkingConfig(thinking_budget=0, include_thoughts=False)),
             before_model_callback=self.fetch_contents,
             output_schema=WebResearchResult,
             output_key=ResearcherState.research_result(task_id),
+            disallow_transfer_to_parent=True,
+            disallow_transfer_to_peers=True,
+            include_contents="none",
             **kwargs,
         )
 
@@ -100,7 +105,7 @@ class WebResearchAgent(Agent):
                 contents.append(f"""
                 <CONTENT>
                 <URL>{result["url"]}</URL>
-                <HTML><{result["response"]}]]</HTML>
+                <DATA><{result["response"]}]]</DATA>
                 </CONTENT>
                 """)
             llm_request.contents.append(types.Content(role="user", parts=[types.Part.from_text(text=text + "\n".join(contents) + "</HTMLContents>")]))

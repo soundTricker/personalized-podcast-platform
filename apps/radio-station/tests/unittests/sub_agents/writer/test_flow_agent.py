@@ -31,10 +31,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-file_handler = logging.FileHandler('test.log')
+file_handler = logging.FileHandler("test.log")
 file_handler.setLevel(logging.DEBUG)
 logger.addHandler(file_handler)
 logger.addHandler(logging.StreamHandler(sys.stdout))
+
 
 class TestProgramSegmentWriterFlowAgent:
     """ProgramSegmentWriterFlowAgentクラスのユニットテスト"""
@@ -68,11 +69,11 @@ class TestProgramSegmentWriterFlowAgent:
             assert mock_context.session.state["temp:writer:2:segment"] == program_plan.segments[1].model_dump()
             assert mock_context.session.state["temp:writer:1:next_segment"] == program_plan.segments[1].model_dump()
             assert mock_context.session.state["temp:writer:2:next_segment"] == {
-                'description': '技術系ブログZennのトレンドフィードから最近の技術トレンドを説明するコーナー',
-                'is_music': False,
-                'program_segment_ids': [2],
-                'segment_seconds': 480.0,
-                'title': 'Zennのトレンド'
+                "description": "技術系ブログZennのトレンドフィードから最近の技術トレンドを説明するコーナー",
+                "is_music": False,
+                "program_segment_ids": [2],
+                "segment_seconds": 480.0,
+                "title": "Zennのトレンド",
             }
 
     @pytest.mark.asyncio
@@ -112,7 +113,6 @@ class TestProgramSegmentWriterFlowAgent:
 
     @pytest.mark.asyncio
     async def test_real(self, program_plan, research_results, listener_program, listener_program_segments, radio_casts):
-
         listener_program.base_radio_casts = [radio_casts[0]]
 
         session_service = InMemorySessionService()
@@ -121,7 +121,7 @@ class TestProgramSegmentWriterFlowAgent:
             agent=ProgramSegmentWriterFlowAgent(name="ResearchFlowAgent"),
             session_service=session_service,
         )
-        session_service.create_session(
+        await session_service.create_session(
             app_name="test",
             user_id="test",
             session_id="test",
@@ -139,7 +139,7 @@ class TestProgramSegmentWriterFlowAgent:
             logger.info(event.model_dump())
             logger.info("------------------")
 
-        session = runner.session_service.get_session(app_name="test", user_id="test", session_id="test")
+        session = await runner.session_service.get_session(app_name="test", user_id="test", session_id="test")
 
         talk_script_segment_dicts = session.state.get("writer:talk_script_segments")
         for talk_script_segment in [TalkScriptSegment(**tssd) for tssd in talk_script_segment_dicts]:

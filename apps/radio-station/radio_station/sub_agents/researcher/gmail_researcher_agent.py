@@ -82,6 +82,8 @@ class GmailResearchAgent(Agent):
             before_agent_callback=self.make_gmail_info,
             output_key=ResearcherState.research_result(task_id),
             planner=PlanReActPlanner(),
+            disallow_transfer_to_parent=True,
+            include_contents="none",
             **kwargs,
         )
 

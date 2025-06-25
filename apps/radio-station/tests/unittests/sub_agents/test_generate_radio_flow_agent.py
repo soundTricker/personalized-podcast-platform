@@ -25,7 +25,7 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
 from radio_station.model.talk_script import TalkScriptSegment
-from radio_station.state_keys import GlobalState, ProgramPlannerState, WriterState
+from radio_station.state_keys import GlobalState, ProgramPlannerState, ResearcherState, WriterState
 from radio_station.sub_agents.generate_radio_flow_agent import GenerateRadioFlowAgent
 from radio_station.utils.agent_helpers import get_auth_config, get_auth_request_function_call
 
@@ -109,6 +109,8 @@ class TestGenerateRadioFlowAgent:
         session_service = InMemorySessionService()
         artifact_service = InMemoryArtifactService()
 
+        logger.info(listener_program_segments)
+
         session = await session_service.create_session(
             app_name="test",
             user_id="test",
@@ -139,6 +141,7 @@ class TestGenerateRadioFlowAgent:
 
         session = await session_service.get_session(app_name="test", user_id="test", session_id="test")
         logger.info(f"Program Plan: {session.state.get(ProgramPlannerState.PROGRAM_STRUCTURE)}")
+        logger.info(f"Research Results: {session.state.get(ResearcherState.RESULTS)}")
 
         keys = await artifact_service.list_artifact_keys(app_name="test", user_id="test", session_id="test")
 
@@ -223,67 +226,3 @@ class TestGenerateRadioFlowAgent:
 
             logger.info(event)
         return auth_request_function_call
-
-    @pytest.mark.asyncio
-    async def test_real2(self, radio_casts2, listener_program2, listener_program_segments2):
-        """実際の動作のテスト"""
-        listener_program2.base_radio_casts = radio_casts2
-
-        session_service = InMemorySessionService()
-        artifact_service = InMemoryArtifactService()
-        runner = Runner(app_name="test", agent=GenerateRadioFlowAgent(), session_service=session_service, artifact_service=artifact_service)
-        session_service.create_session(
-            app_name="test",
-            user_id="test",
-            session_id="test",
-            state={
-                GlobalState.RADIO_CASTS: [r.model_dump() for r in radio_casts2],
-                GlobalState.LISTENER_PROGRAM: listener_program2.model_dump(),
-                GlobalState.LISTENER_PROGRAM_SEGMENTS: [lps.model_dump() for lps in listener_program_segments2],
-            },
-        )
-
-        show_plan = False
-        show_talk_script = False
-        async for event in runner.run_async(user_id="test", session_id="test", new_message=types.Content(parts=[types.Part(text="")])):
-            # if "LLMSpeakerAgent" in event.author:
-            #     logger.info(event.content)
-            # session = session_service.get_session(app_name="test", user_id="test", session_id="test")
-            # if not show_plan and ProgramPlannerState.PROGRAM_STRUCTURE in session.state:
-            #     show_plan = True
-            #     program_plan = ProgramPlan(**session.state.get(ProgramPlannerState.PROGRAM_STRUCTURE))
-            #     logger.info("Program Structure:")
-            #     logger.info(f"{program_plan.to_llm_text(include_segments=True)}")
-            #
-            # if not show_talk_script and WriterState.TALK_SCRIPT_SEGMENTS in session.state and event.content and event.content.parts and "[[Talk Script]]" in event.content.parts[-1].text:
-            #     show_talk_script = True
-            #     segment_dicts = session.state.get(WriterState.TALK_SCRIPT_SEGMENTS)
-            #     talk_scripts: list[TalkScript] = list(itertools.chain.from_iterable([TalkScriptSegment(**tsd).scripts for tsd in segment_dicts]))
-            #     radio_casts = session.state.get(GlobalState.RADIO_CASTS)
-            #     m = {}
-            #     logger.info("Talk Script:")
-            #     for rc in radio_casts:
-            #         m[rc["id"]] = rc["name"]
-            #
-            #     for ts in talk_scripts:
-            #         logger.info(f"  {m[ts.radio_cast_id]}({ts.speaking_rate}): {ts.content}")
-            pass
-
-        session = session_service.get_session(app_name="test", user_id="test", session_id="test")
-        logger.info(f"Program Plan: {session.state.get(ProgramPlannerState.PROGRAM_STRUCTURE)}")
-
-        keys = await artifact_service.list_artifact_keys(app_name="test", user_id="test", session_id="test")
-
-        talk_script_segment_dicts = session.state.get(WriterState.TALK_SCRIPT_SEGMENTS)
-
-        talk_script_segments = [TalkScriptSegment(**tssd) for tssd in talk_script_segment_dicts]
-        for tss in talk_script_segments:
-            logger.info(tss.to_talk_script_text(radio_casts=radio_casts2))
-        for artifact_key in keys:
-            mp3file = await artifact_service.load_artifact(app_name="test", user_id="test", session_id="test", filename=artifact_key)
-            with open(artifact_key, "wb") as f:
-                f.write(mp3file.inline_data.data)
-        mp3file = await artifact_service.load_artifact(app_name="test", user_id="test", session_id="test", filename="audio.mp3")
-
-        with open("test_audio.mp3", "wb") as f:
-            f.write(mp3file.inline_data.data)

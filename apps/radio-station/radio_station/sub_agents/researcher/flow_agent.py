@@ -14,6 +14,7 @@
 
 import datetime
 import json
+import logging
 import uuid
 from typing import AsyncGenerator
 
@@ -35,6 +36,8 @@ from radio_station.sub_agents.researcher.rss_researcher_agent import (
     RssFeedResearchAgent,
 )
 from radio_station.sub_agents.researcher.web_researcher_agent import WebResearchAgent
+
+logger = logging.getLogger(__name__)
 
 
 class ResearchFlowAgent(BaseAgent):
@@ -62,6 +65,7 @@ class ResearchFlowAgent(BaseAgent):
             task_id = str(seg.id) if seg.id else str(uuid.uuid4())
             task_ids.append(task_id)
             ctx.session.state[ResearcherState.task_info(task_id)] = segment
+            logger.info(f"Make researcher for {seg.segment_type}")
             if seg.segment_type == SegmentType.RSS:
                 research_agents.append(RssFeedResearchAgent(task_id))
             elif seg.segment_type == SegmentType.CALENDAR:

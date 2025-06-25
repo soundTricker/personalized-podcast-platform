@@ -14,6 +14,7 @@
 
 import datetime
 import json
+import logging
 import os
 from typing import Optional
 
@@ -22,7 +23,7 @@ from google.adk.agents import Agent, SequentialAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models import LlmRequest
 from google.adk.models.llm_response import LlmResponse
-from google.adk.planners import PlanReActPlanner
+from google.adk.planners import BuiltInPlanner
 from google.adk.tools import ToolContext
 from google.auth.transport.requests import Request
 from google.genai import types
@@ -30,13 +31,15 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from pydantic import Field
 
-from radio_station.constants import GENERIC_MODEL, GoogleApiScope
+from radio_station.constants import THINKING_MODEL, GoogleApiScope
 from radio_station.model.base_model import BaseModel
 from radio_station.model.listener_program_segment import ListenerProgramCalendarSegment
 from radio_station.state_keys import GlobalState, ResearcherState
 from radio_station.tools.geolocation_tool import geolocation_tool
 from radio_station.tools.weather_tool import weather_tool
 from radio_station.utils.crypto import decrypt
+
+logger = logging.getLogger(__name__)
 
 
 class CalendarEvent(BaseModel):
@@ -110,6 +113,8 @@ def list_calendar_events(
             creds, _ = google.auth.default()
         tool_context.state["calendar_tool_tokens"] = json.loads(creds.to_json())
 
+    logger.info("call list_calendar_events tools")
+
     service = build("calendar", "v3", credentials=creds)
     events_result = (
         service.events()
@@ -137,10 +142,10 @@ class CalendarResearchAgent(Agent):
         super().__init__(
             task_id=task_id,
             task=task,
-            model=GENERIC_MODEL,
+            model=THINKING_MODEL,
             name=f"CalendarResearchAgent_{task_id}",
             instruction=f"""
-                You are an AI Calendar Event Summarization Assistant specializing in creating radio program segments.
+                You are an AI Calendar Schedule Summarization Assistant specializing in creating radio program segments.
 
                 Your tasks are:
                 1. Fetch calendar events for a specified period by using the list_calendar_events tool
@@ -151,7 +156,7 @@ class CalendarResearchAgent(Agent):
                         2-1. search geolocation by using `get_geolocation_for_place` tool.
                         2-2. If geolocation can be obtained, Get a weather for event date and geolocation.
                 3. Create a summary of the events within the target period based on Task Info.
-                    - When Calendar Information is not found, please return JSON Object like `{{"summary": "No event found in this schedule."}}`
+                    - When Calendar Information is not found or got error, please return JSON Object like `{{"summary": "No event found in this schedule."}}`
                     - When weather can be obtained, please add weather information to summary.
 
                 Output Format:
@@ -178,10 +183,17 @@ class CalendarResearchAgent(Agent):
             ),
             before_model_callback=self.insert_task_info,
             before_agent_callback=self.make_calendar_info,
+            after_agent_callback=self.log_content,
             output_key=ResearcherState.research_result(task_id),
-            planner=PlanReActPlanner(),
+            disallow_transfer_to_parent=True,
+            disallow_transfer_to_peers=True,
+            include_contents="none",
             **kwargs,
         )
+
+    def log_content(self, callback_context: CallbackContext) -> Optional[LlmResponse]:
+        research_results = callback_context.state[ResearcherState.research_result(self.task_id)]
+        logger.info(f"calendar result result: {research_results}")
 
     def insert_task_info(self, callback_context: CallbackContext, llm_request: LlmRequest) -> Optional[LlmResponse]:
         llm_request.contents.append(
@@ -211,7 +223,6 @@ class CalendarResearchAgent(Agent):
         }
 
         callback_context.state[ResearcherState.task_calendar_info(self.task_id)] = calendar_info
-        return None
 
 
 class FormatAgent(Agent):
@@ -220,7 +231,7 @@ class FormatAgent(Agent):
     def __init__(self, task_id, **kwargs):
         super().__init__(
             task_id=task_id,
-            model=GENERIC_MODEL,
+            model=THINKING_MODEL,
             name=f"CalendarResearchResultFormatAgent_{task_id}",
             instruction=f"""
             You are an agent that formats the answers from CalendarResearchAgent_{task_id} agent.
@@ -228,8 +239,11 @@ class FormatAgent(Agent):
             # Your task
             Read data from session state with key '{ResearcherState.research_result(task_id)}' and format'
             """,
+            planner=BuiltInPlanner(thinking_config=types.ThinkingConfig(thinking_budget=0, include_thoughts=False)),
             output_schema=CalendarResearchResult,
             output_key=ResearcherState.research_result(task_id),
+            disallow_transfer_to_parent=True,
+            disallow_transfer_to_peers=True,
             **kwargs,
         )
 

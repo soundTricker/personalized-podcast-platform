@@ -79,6 +79,9 @@ class RssFeedResearchAgent(Agent):
             before_model_callback=self.add_feed_to_instruction,
             output_schema=FeedResearchResult,
             output_key=ResearcherState.research_result(task_id),
+            disallow_transfer_to_parent=True,
+            disallow_transfer_to_peers=True,
+            include_contents="none",
             **kwargs,
         )
 

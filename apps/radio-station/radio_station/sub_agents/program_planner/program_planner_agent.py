@@ -121,6 +121,9 @@ You are a Radio Program Planner AI that creates a structured program based on li
             output_schema=ProgramPlan,
             output_key=ProgramPlannerState.PROGRAM_STRUCTURE,
             after_agent_callback=self.update_state,
+            disallow_transfer_to_parent=True,
+            disallow_transfer_to_peers=True,
+            include_contents="none",
             **kwargs,
         )
 

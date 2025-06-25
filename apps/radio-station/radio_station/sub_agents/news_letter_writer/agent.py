@@ -81,6 +81,8 @@ class NewsLetterWriterAgent(LlmAgent):
                     ),
                 ],
             ),
+            disallow_transfer_to_parent=True,
+            include_contents="none",
             before_model_callback=self.insert_content,
             after_model_callback=self.save_content,
         )

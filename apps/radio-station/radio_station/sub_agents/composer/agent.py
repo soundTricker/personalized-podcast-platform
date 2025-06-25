@@ -32,7 +32,7 @@ from google.genai.live_music import AsyncMusicSession
 from pydantic import Field
 from pydub import AudioSegment
 
-from radio_station.constants import THINKING_MODEL, GENERIC_MODEL
+from radio_station.constants import GENERIC_MODEL, THINKING_MODEL
 from radio_station.model.music_plan import MusicPlan
 from radio_station.state_keys import ComposerState
 from radio_station.sub_agents.composer.tools import generate_music_tool
@@ -210,6 +210,9 @@ If you want to change it, change the weight parameter gradually for small reason
             before_model_callback=self.insert_user_content,
             output_schema=MusicPlan,
             output_key=ComposerState.task_music_plan(task_id),
+            disallow_transfer_to_parent=True,
+            disallow_transfer_to_peers=True,
+            include_contents="none",
         )
 
     def insert_user_content(self, callback_context: CallbackContext, llm_request: LlmRequest) -> Optional[LlmResponse]:

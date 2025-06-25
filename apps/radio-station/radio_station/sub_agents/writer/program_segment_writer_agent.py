@@ -84,6 +84,8 @@ You will create a talk script for one of the segments.
                     ),
                 ],
             ),
+            disallow_transfer_to_parent=True,
+            disallow_transfer_to_peers=True,
             include_contents="none",
             **kwargs,
         )
