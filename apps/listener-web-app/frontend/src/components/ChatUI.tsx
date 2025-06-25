@@ -182,15 +182,14 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
                         .map(line => `data: ${line}`);
                     lines.forEach((line) => {
                         let data = line.replace(/^data:\s*/, '');
-                        console.log(data);
                         if (!data || data === "") {
                             return;
                         }
                         try {
-                            if (!data.startsWith("{") && data.endsWith("}")
-                                && prevLine && prevLine.startsWith("{")) {
+                            if (!data.startsWith("{") && prevLine && prevLine.startsWith("{")) {
                                 data = prevLine + data;
                             }
+                            console.log(data);
                             const event: AdkEvent & { detail?: string, error?: string } = JSON.parse(data);
                             prevLine = '';
 
@@ -243,7 +242,7 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
                             }
                         } catch (e) {
                             prevLine = data;
-                            console.error(e);
+                            console.error(e, data);
                             return;
                         }
                     });
