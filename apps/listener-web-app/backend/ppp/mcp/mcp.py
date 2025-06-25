@@ -14,12 +14,14 @@
 
 from fastapi import APIRouter
 
-from ppp.mcp.endpoints import listener_program, listener_program_segments, radio_casts
+from ppp.mcp.endpoints import google_oauth2, listener, listener_program, listener_program_segments, radio_casts
 
 # Create MCP router
 mcp_router = APIRouter()
 
 # Include routers
+mcp_router.include_router(listener.router, prefix="/listener", tags=["mcp-listener"])
 mcp_router.include_router(listener_program.router, prefix="/listener-programs", tags=["mcp-listener-programs"])
 mcp_router.include_router(listener_program_segments.router, prefix="/listener-program-segments", tags=["mcp-listener-program-segments"])
 mcp_router.include_router(radio_casts.router, prefix="/radio-casts", tags=["mcp-radio-casts"])
+mcp_router.include_router(google_oauth2.router, tags=["mcp-google-oauth2"])

@@ -14,32 +14,18 @@
 
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 
 from ppp.models.listener_program_segment import ListenerProgramSegment
 from ppp.schemas.listener_program_segment import (
     ListenerProgramSegmentUnion,
     ListenerProgramSegmentUpdateUnion,
 )
-from ppp.services.listener_program import ListenerProgramService
-from ppp.services.listener_program_segment import ListenerProgramSegmentService
+from ppp.services.listener_program import ListenerProgramService, get_listener_program_service
+from ppp.services.listener_program_segment import ListenerProgramSegmentService, get_listener_program_segment_service
 from ppp.utils.auth import get_current_user_id
 
 router = APIRouter()
-
-
-def get_listener_program_service() -> ListenerProgramService:
-    """
-    Dependency to get the ListenerProgramService.
-    """
-    return ListenerProgramService()
-
-
-def get_listener_program_segment_service() -> ListenerProgramSegmentService:
-    """
-    Dependency to get the ListenerProgramSegmentService.
-    """
-    return ListenerProgramSegmentService()
 
 
 @router.get("/{program_id}/segments", response_model=List[ListenerProgramSegmentUnion])
@@ -69,7 +55,7 @@ async def list_listener_program_segments(
 @router.put("/{program_id}/segments", response_model=List[ListenerProgramSegmentUnion])
 async def update_listener_program_segments(
     program_id: str,
-    segments: List[ListenerProgramSegmentUpdateUnion],
+    segments: List[ListenerProgramSegmentUpdateUnion] = Body(min_items=1, max_items=5),
     program_service: ListenerProgramService = Depends(get_listener_program_service),
     segment_service: ListenerProgramSegmentService = Depends(get_listener_program_segment_service),
     user_id: str = Depends(get_current_user_id),

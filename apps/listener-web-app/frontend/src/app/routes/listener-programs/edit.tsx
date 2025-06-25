@@ -334,7 +334,15 @@ export default function EditPage() {
                         children: (field) => (
                             <div>
                                 <div className="mb-2 block">
-                                    <Label htmlFor={field.name}>タイトル</Label>
+                                    <Label htmlFor={field.name}>
+                                        <div className="flex flex-row items-center gap-1">
+                                            <span>番組タイトル</span>
+                                            <HelpIcon>
+                                                番組プログラムのタイトルを設定します。<br/>
+                                                番組中でも説明されるのでシンプルで言いやすい名前にしてください。
+                                            </HelpIcon>
+                                        </div>
+                                    </Label>
                                 </div>
                                 <TextInput
                                     id={field.name}
@@ -356,7 +364,19 @@ export default function EditPage() {
                         children: (field) => (
                             <div>
                                 <div className="mb-2 block">
-                                    <Label htmlFor={field.name}>説明</Label>
+                                    <Label htmlFor={field.name}>
+                                        <div className="flex flex-row items-center gap-1">
+                                            <span>番組の説明</span>
+                                            <HelpIcon>
+                                                番組プログラムの内容を設定します。<br/>
+                                                番組の視聴者(例: 熟練IT技術者、新人ビジネスマン、学生など)や、<br/>
+                                                オープニング曲や、エンディング曲などの挿入する音楽の種類(Deep
+                                                House、沖縄民謡、アニメソング風等)、<br/>
+                                                番組全体の説明を詳しく書くと、よりイメージに近い台本が作成されます。
+                                            </HelpIcon>
+                                        </div>
+
+                                    </Label>
                                 </div>
                                 <Textarea
                                     id={field.name}
@@ -527,7 +547,14 @@ export default function EditPage() {
                         children: (field) => (
                             <div>
                                 <div className="mb-2 block">
-                                    <Label htmlFor={field.name}>配信スケジュール</Label>
+                                    <Label htmlFor={field.name}>
+                                        <div className="flex flex-row items-center gap-1">
+                                            <span>配信スケジュール</span>
+                                            <HelpIcon>
+                                                このラジオ番組の作成するスケジュールを設定します。
+                                            </HelpIcon>
+                                        </div>
+                                    </Label>
                                 </div>
                                 <Select
                                     id={field.name}
@@ -592,7 +619,19 @@ export default function EditPage() {
                         children: (field) => (
                             <div>
                                 <div className="mb-2 block">
-                                    <Label htmlFor={field.name}>公開設定</Label>
+                                    <Label htmlFor={field.name}>
+                                        <div className="flex flex-row items-center gap-1">
+                                            <span>公開設定</span>
+                                            <HelpIcon>
+                                                このラジオ番組の公開設定を設定します。<br/>
+                                                <ul className="list-disc list-inside ml-2">
+                                                    <li><span className="font-semibold">非公開:</span> このラジオ番組は完全に非公開です。PPP上で聞くか、ダウンロードして聞く事ができます。</li>
+                                                    <li><span className="font-semibold">限定公開:</span> ポッドキャスト用のRSSフィードが作成されます。 自身で設定したプライベートキーとURL中のキーが一致する場合のみ配信を聞くことができます。 RSSフィードURLとともにプライベートキーが公開されてしまうと誰でも聞けてしまうので注意してください。</li>
+                                                    <li><span className="font-semibold">公開:</span> ポッドキャスト用のRSSフィードが作成されます。 誰でも作成した番組を聞くことができるようになります。</li>
+                                                </ul>
+                                            </HelpIcon>
+                                        </div>
+                                        </Label>
                                 </div>
                                 <Select
                                     id={field.name}

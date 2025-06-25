@@ -1196,6 +1196,11 @@ export default function CreatePage() {
 
     // Add a new segment
     const addSegment = (type: SegmentType) => {
+        // Check if maximum number of segments (5) is reached
+        if (formValues.segments.length >= 5) {
+            return;
+        }
+
         const newSegment = {
             ...defaultSegmentValues[type],
             order: formValues.segments.length
@@ -1291,6 +1296,7 @@ export default function CreatePage() {
                     <h2 className="text-xl font-semibold">コーナー</h2>
                     <div className="flex gap-2">
                         <Select
+                            disabled={formValues.segments.length >= 5}
                             onChange={(e) => {
                                 if (e.target.value) {
                                     addSegment(e.target.value as SegmentType);
@@ -1298,7 +1304,11 @@ export default function CreatePage() {
                                 }
                             }}
                         >
-                            <option value="">コーナーを追加...</option>
+                            <option value="">
+                                {formValues.segments.length >= 5 
+                                    ? "コーナー数が上限に達しました（最大5つ）" 
+                                    : "コーナーを追加..."}
+                            </option>
                             <option value={SegmentType.RSS}>RSSフィード</option>
                             <option value={SegmentType.CALENDAR}>カレンダー</option>
                             <option value={SegmentType.WEB}>Web</option>
@@ -1429,6 +1439,7 @@ export default function CreatePage() {
                                 <p className="text-gray-500 mb-4">コーナーがありません。コーナーを追加してください。</p>
                                 <Select
                                     className="max-w-xs mx-auto"
+                                    disabled={formValues.segments.length >= 5}
                                     onChange={(e) => {
                                         if (e.target.value) {
                                             addSegment(e.target.value as SegmentType);
@@ -1436,7 +1447,11 @@ export default function CreatePage() {
                                         }
                                     }}
                                 >
-                                    <option value="">コーナーを追加...</option>
+                                    <option value="">
+                                        {formValues.segments.length >= 5 
+                                            ? "コーナー数が上限に達しました（最大5つ）" 
+                                            : "コーナーを追加..."}
+                                    </option>
                                     <option value={SegmentType.RSS}>RSSフィード</option>
                                     <option value={SegmentType.CALENDAR}>カレンダー</option>
                                     <option value={SegmentType.WEB}>Web</option>

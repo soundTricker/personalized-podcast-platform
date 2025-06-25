@@ -678,9 +678,9 @@ export class GoogleOauth2Service {
      * Initiate the Google OAuth2 flow.
      *
      * Args:
-     * request: The request object.
      * scopes: The list of scopes to request.
      * user_id: The ID of the current user.
+     * settings: The project settings
      *
      * Returns:
      * A redirect to the Google authorization URL.

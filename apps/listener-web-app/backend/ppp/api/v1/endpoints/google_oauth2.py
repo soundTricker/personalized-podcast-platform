@@ -23,62 +23,35 @@ import os
 from typing import List
 
 import requests
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
 
-from ppp.services.listener import ListenerService
+from ppp.settings import Settings, get_settings
 from ppp.utils.auth import get_current_user_id
+from ppp.utils.google_oauth2 import generate_auth_url
 
 router = APIRouter()
-listener_service = ListenerService()
-
-# Google OAuth2 endpoints
-GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/auth"
-GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-
-# Get client ID and secret from environment variables
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
-
-if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
-    raise ValueError("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in environment variables")
 
 
 @router.get("/google-oauth2")
 async def google_oauth2(
-    request: Request,
     scopes: List[str] = Query(..., description="The list of scopes to request"),
     user_id: str = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
 ) -> str:
     """
     Initiate the Google OAuth2 flow.
 
     Args:
-        request: The request object.
         scopes: The list of scopes to request.
         user_id: The ID of the current user.
+        settings: The project settings
 
     Returns:
         A redirect to the Google authorization URL.
     """
-    # Construct the redirect URI
-    redirect_uri = f"{os.environ.get('API_BASE_URL', 'http://localhost:3000')}/api/v1/google-oauth2/callback"
 
-    # Construct the authorization URL
-    auth_params = {
-        "client_id": GOOGLE_CLIENT_ID,
-        "redirect_uri": redirect_uri,
-        "response_type": "code",
-        "scope": " ".join(scopes),
-        "access_type": "offline",  # Request a refresh token
-        "prompt": "consent",  # Force the consent screen to appear
-        "state": user_id,  # Pass the user ID as state to retrieve it in the callback
-    }
-
-    auth_url = f"{GOOGLE_AUTH_URL}?{'&'.join(f'{k}={v}' for k, v in auth_params.items())}"
-
-    # Redirect to the authorization URL
-    return auth_url
+    return generate_auth_url(settings, user_id, scopes)
 
 
 @router.get("/google-oauth2/callback")

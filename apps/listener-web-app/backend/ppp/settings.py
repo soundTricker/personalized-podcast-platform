@@ -22,6 +22,8 @@ BackendType = Literal["agentengine", "remote"]
 class Settings(BaseSettings):
     GOOGLE_CLOUD_PROJECT: str
     GOOGLE_CLOUD_LOCATION: str
+    GOOGLE_CLIENT_ID: str
+    GOOGLE_CLIENT_SECRET: str
     BACKEND_TYPE: BackendType = "remote"
     BACKEND_URL: str | None = "http://localhost:8000"
     AGENT_ENGINE_ID: str | None = None

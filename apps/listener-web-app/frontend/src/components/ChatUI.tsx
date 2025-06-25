@@ -17,7 +17,7 @@
 import React, {useState, useRef, useEffect} from 'react';
 import {Button, Avatar, TextInput, Spinner, Popover} from 'flowbite-react';
 import {HiChat, HiX, HiPaperAirplane} from 'react-icons/hi';
-import {AgentRunRequest, OpenAPI} from "@api/requests";
+import {AgentRunRequest, FunctionCall, FunctionResponse, OpenAPI, Part} from "@api/requests";
 import type {Event as AdkEvent} from "@api/requests/types.gen";
 import {useAuth} from "@/firebase/auth.tsx";
 import {useLocalStorage} from "@/hooks/useLocalStorage.ts";
@@ -27,10 +27,15 @@ import {
 } from '@api/queries';
 import {UseAgentsServiceGetApiV1AgentsByAppNameSessionBySessionIdKeyFn} from '@api/queries';
 import ReactMarkdown from "react-markdown";
+import {HiCheckCircle} from "react-icons/hi2";
+import remarkGfm from "remark-gfm";
 
 interface ChatMessage {
     id: string;
-    content: string;
+    content?: string | null;
+    functionCall?: FunctionCall | null;
+    functionResponse?: FunctionResponse | null;
+    runningState?: 'running' | 'done';
     isUser: boolean;
     timestamp: Date;
 }
@@ -41,6 +46,41 @@ interface ChatUIProps {
     icon?: string;
 }
 
+const functionCallNameMap: {[key: string]: string} = {
+    "rss_rag_tool": "P2-RS (RSS AI Agent)",
+    "create_listener_program": "P4-CA (Program Generate Agent)",
+    "update_listener_program_segments": "P4-SCA (Program Segment Generate Agent)",
+    "get_radio_casts": "P4-RC (Radio Casts Agent)"
+};
+
+function getFunctionCallName(message: ChatMessage) {
+    if (!message.functionCall && !message.functionResponse) {
+        return '';
+    }
+
+    const functionName = message.functionCall?.name || message.functionResponse?.name;
+
+    const name = functionCallNameMap[functionName!];
+    if (!name) {
+        return "P2-NF"
+    }
+    return name;
+}
+
+function getFunctionCallMessage(message: ChatMessage) {
+    if (!message.functionCall && !message.functionResponse) {
+        return '';
+    }
+    const name = getFunctionCallName(message);
+    if (!name) {
+        return '';
+    }
+    const stateIcon = message.runningState === 'running' ? <Spinner /> : <HiCheckCircle className="text-green-400 text-xl" />
+    const stateMessage = message.runningState === 'running' ? 'に問い合わせ中' : ' 完了'
+    return <div className="flex items-center gap-1"><span>{stateIcon}</span><span>{name + stateMessage}</span></div>
+}
+
+
 function isAgentRunRequest(input: any): input is AgentRunRequest {
     if (typeof input === "string") {
         return false;
@@ -49,19 +89,33 @@ function isAgentRunRequest(input: any): input is AgentRunRequest {
     return 'appName' in input;
 }
 
+function getRunningState(part: Part): ChatMessage['runningState'] {
+    if (!part.functionCall && !part.functionResponse) {
+        return undefined;
+    }
+    if (!part.functionResponse) {
+        return 'running';
+    }
+    return 'done';
+}
 
-function createMessageFromEvent(event: AdkEvent & { detail?: string; error?: string }) {
+function createMessageFromEvent(event: AdkEvent & { detail?: string; error?: string }, ignoreCalling = false): ChatMessage[] {
     console.log(event);
     if (!event || !event.content || !event.content.parts || !event.content.parts.length) {
-        return null;
+        return [];
     }
 
-    return {
-        id: event.id || `message-${new Date().getTime()}`,
-        content: event.content.parts[event.content.parts.length - 1].text!,
-        isUser: event.content.role === "user",
+    const parts = event.content.parts.filter(part => !ignoreCalling || !part.functionCall);
+
+    return parts.map((part, index) => ({
+        id: `${event.id}-${index}` || `message-${index}-${new Date().getTime()}`,
+        content: part.text,
+        functionCall: part.functionCall,
+        functionResponse: part.functionResponse,
+        runningState: getRunningState(part),
+        isUser: event.content!.role === "user" && !part.functionResponse,
         timestamp: new Date(),
-    };
+    }));
 }
 
 /**
@@ -99,10 +153,10 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
     }), {enabled: !!sessionId})
 
     if (session && session.events?.length && messages.length == 1) {
-        session.events.map((event) => {
-            const message = createMessageFromEvent(event);
-            if (message) {
-                setMessages(prev => [...prev, message])
+        session.events.filter(event => event.content && event.content.parts && event.content.parts.length).map((event) => {
+            const messages = createMessageFromEvent(event, true);
+            if (messages.length) {
+                setMessages(prev => prev.concat(messages))
             }
         });
     }
@@ -145,7 +199,6 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
                                 return;
                             }
 
-
                             if (event.errorMessage || event.error) {
 
                                 if (partialMessage) {
@@ -162,22 +215,32 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
                                 return;
                             }
 
-                            const message = createMessageFromEvent(event);
-                            if (!message) {
+                            const messages = createMessageFromEvent(event);
+                            if (!messages.length) {
                                 return;
                             }
                             if (event.partial) {
                                 // partial message
+                                const message = messages.pop()!;
                                 setPartialMessage(partialMessage => partialMessage ? {
                                     ...partialMessage,
-                                    content: partialMessage.content + message.content,
+                                    ...message,
+                                    content: (partialMessage.content || '') + (message.content || ''),
                                 } : message);
                             } else {
                                 setPartialMessage(null);
-                                setMessages(prev => [...prev, message])
+                                setMessages(prev => {
+
+                                    const runningDone = messages.some(m => m.runningState === "done");
+
+                                    if (runningDone) {
+                                        prev.pop();
+                                        return [...prev, ...messages];
+                                    } else {
+                                        return [...prev, ...messages]
+                                    }
+                                })
                             }
-
-
                         } catch (e) {
                             prevLine += data;
                             console.error(e);
@@ -306,9 +369,10 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
                             : 'bg-gray-100 text-gray-900 rounded-bl-none'
                     }`}
                 >
-                    <div className="text-sm">
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
-                    </div>
+                    {message.content && <div className="text-sm">
+                        {message.isUser ? message.content : <div className="markdown"><ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown></div>}
+                    </div>}
+                    {message.runningState && <div className="text-sm">{getFunctionCallMessage(message)}</div>}
                     <p className={`text-xs mt-1 ${message.isUser ? 'text-blue-100' : 'text-gray-500'}`}>
                         {message.timestamp.toLocaleTimeString('ja-JP', {
                             hour: '2-digit',

@@ -1094,8 +1094,10 @@ function ListenerProgramDetailPage() {
                                 <Tabs variant="underline">
                                     {showingHistory!.newsLetterContents && (
                                         <TabItem active title="配信内容" icon={HiEnvelopeOpen}>
+                                            <div className="markdown">
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}>{showingHistory!.newsLetterContents}</ReactMarkdown>
+                                            </div>
                                         </TabItem>
                                     )}
                                     {showingHistory.talkScript && (
