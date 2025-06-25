@@ -90,10 +90,12 @@ services:
       - "9099:9099"  # Firebase Auth
       - "8085:8085"  # Firebase Functions
       - "9199:9199"  # Firestore
+      - "9299:9299"  # Firebase Storage
     volumes:
       - ./firebase.json:/home/node/firebase.json
       - ./.firebaserc:/home/node/.firebaserc
       - ./firebase-data:/home/node/firebase-data
+      - ./storage.rules:/home/node/storage.rules
     environment:
       - FIREBASE_TOKEN=${FIREBASE_TOKEN}
     command: firebase emulators:start --project ppp-listener-web-app --import /home/node/firebase-data/exported  --export-on-exit

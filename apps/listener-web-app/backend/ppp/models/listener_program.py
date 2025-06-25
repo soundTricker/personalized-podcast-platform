@@ -81,6 +81,9 @@ class ListenerProgram(BaseModel):
 
     number_of_broadcast: int = 0
 
+    # Cover art
+    cover_art_uri: str | None = None  # URI for podcast cover art (gs:// format)
+
     # Additional timestamps
     published_at: datetime | None = None
 

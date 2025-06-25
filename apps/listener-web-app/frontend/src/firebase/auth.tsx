@@ -29,11 +29,13 @@ import {
     setPersistence,
     browserSessionPersistence
 } from 'firebase/auth';
+import {connectStorageEmulator, getStorage} from 'firebase/storage';
 import {firebaseConfig} from './config';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
 // Auth context type
@@ -85,6 +87,7 @@ export function AuthProvider({children}: AuthProviderProps) {
     useEffect(() => {
         if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
             connectAuthEmulator(auth, "http://localhost:9099", {disableWarnings: true});
+            connectStorageEmulator(storage, "localhost", 9299)
         }
     }, []);
 

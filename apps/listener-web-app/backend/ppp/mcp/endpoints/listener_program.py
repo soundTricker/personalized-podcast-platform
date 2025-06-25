@@ -48,4 +48,5 @@ async def create_listener_program(
         status=listener_program.status,
         publish_setting=listener_program.publish_setting,
         private_key=listener_program.private_key or None,
+        cover_art_uri=listener_program.cover_art_uri,
     )

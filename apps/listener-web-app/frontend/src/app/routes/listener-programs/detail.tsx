@@ -34,7 +34,8 @@ import {
     Tabs,
     TabsRef,
     Toast,
-    ToastToggle
+    ToastToggle,
+    ClipboardWithIconText
 } from "flowbite-react";
 import {
     HiCheckCircle,
@@ -50,6 +51,7 @@ import {
     HiOutlineArrowPath,
     HiOutlineChatBubbleLeftEllipsis,
     HiOutlineChatBubbleLeftRight,
+    HiOutlineClipboard,
     HiOutlineExclamationCircle,
     HiOutlineMusicalNote,
     HiOutlineRadio,
@@ -83,6 +85,8 @@ import {IconType} from "react-icons";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ProgramStatusBadge from "@/components/ProgramStatusBadge.tsx";
+import FBImage from '@/components/FBImage';
+import {firebaseConfig} from '@/firebase/config';
 
 type StepState = 'yet' | 'running' | 'done';
 
@@ -776,30 +780,44 @@ function ListenerProgramDetailPage() {
             )}
 
             <header className="mb-8">
-                <div className="flex justify-between items-center mb-4">
-                    <h1 className="text-3xl font-bold">{program.title}</h1>
-                    <div className="flex gap-2">
-                        {program.status === ProgramStatus.PAUSE && <Popover content={(
-                            <div className="w-64 text-sm text-gray-500 dark:text-gray-400">
-                                <div className="px-3 py-2">
-                                    {program.status === ProgramStatus.PAUSE && activePrograms.length > 0 ? <p>既に定期実行中のラジオ番組があります。<br/>現在 定期実行が可能な番組はユーザあたり最大1つです。</p> : <p>毎朝5時にスケジュールに配信スケジュールにマッチすれば自動作成されます。</p>}
-                                </div>
-                            </div>
-                        )} trigger="hover"><Button color="light" onClick={handleActivate}
-                                                   className={program.status === ProgramStatus.PAUSE && activePrograms.length > 0 ? 'disabled': ''}>
-                            定期実行を開始
-                        </Button></Popover>}
-                        {program.status === ProgramStatus.ACTIVE && <Popover content={(
-                            <div className="w-64 text-sm text-gray-500 dark:text-gray-400">
-                                <div className="px-3 py-2">
-                                    <p>定期配信が停止されます。</p>
-                                </div>
-                            </div>
-                        )} trigger="hover"><Button color="light" onClick={handleActivate}>
-                            定期実行を停止
-                        </Button></Popover>}
-                        {program.status !== ProgramStatus.ACTIVE && (
-                            <>
+                {/* カバー画像とタイトル */}
+                <div className="flex gap-6 mb-6">
+                    {/* カバー画像 */}
+                    <div className="flex-shrink-0">
+                        <FBImage
+                            path={program.coverArtUri ? program.coverArtUri.replace('gs://' + firebaseConfig.storageBucket + '/', '') : null}
+                            alt={`${program.title} カバー画像`}
+                            className="w-48 h-48 object-cover rounded-lg border shadow-lg"
+                        />
+                    </div>
+
+                    {/* プログラム情報 */}
+                    <div className="flex-1">
+                        <div className="flex justify-between items-start mb-4">
+                            <h1 className="text-3xl font-bold">{program.title}</h1>
+                            <div className="flex gap-2">
+                                {program.status === ProgramStatus.PAUSE && <Popover content={(
+                                    <div className="w-64 text-sm text-gray-500 dark:text-gray-400">
+                                        <div className="px-3 py-2">
+                                            {program.status === ProgramStatus.PAUSE && activePrograms.length > 0 ?
+                                                <p>既に定期実行中のラジオ番組があります。<br/>現在
+                                                    定期実行が可能な番組はユーザあたり最大1つです。</p> :
+                                                <p>毎朝5時にスケジュールに配信スケジュールにマッチすれば自動作成されます。</p>}
+                                        </div>
+                                    </div>
+                                )} trigger="hover"><Button color="light" onClick={handleActivate}
+                                                           className={program.status === ProgramStatus.PAUSE && activePrograms.length > 0 ? 'disabled' : ''}>
+                                    定期実行を開始
+                                </Button></Popover>}
+                                {program.status === ProgramStatus.ACTIVE && <Popover content={(
+                                    <div className="w-64 text-sm text-gray-500 dark:text-gray-400">
+                                        <div className="px-3 py-2">
+                                            <p>定期配信が停止されます。</p>
+                                        </div>
+                                    </div>
+                                )} trigger="hover"><Button color="light" onClick={handleActivate}>
+                                    定期実行を停止
+                                </Button></Popover>}
                                 <Button as={Link} to="./edit" color="light">
                                     編集
                                 </Button>
@@ -809,59 +827,77 @@ function ListenerProgramDetailPage() {
                                 <Button color="red" onClick={handleDelete}>
                                     削除
                                 </Button>
-                            </>
+
+                                {segments && segments.length > 0 && broadcastHistories && broadcastHistories.length === 0 &&
+                                    <Button color="blue" onClick={handleGenerateFirstPodCast}
+                                            disabled={generatePodcastState.generating}>
+                                        第0回を作成(お試し作成)
+                                    </Button>
+                                }
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4 mb-2">
+                            <span className="text-sm">プログラム時間: {program.programMinutes}分</span>
+                            <span className="text-sm">定期作成: <ProgramStatusBadge
+                                status={program.status}></ProgramStatusBadge></span>
+                            <span
+                                className="text-sm">配信スケジュール: {program.broadcastSchedule === BroadcastSchedule.DAILY ? '毎日' : '毎週'}</span>
+                            <span className="text-sm">公開設定: <Badge className="inline-block"
+                                                                       color={program.publishSetting === PublishSetting.PRIVATE ? 'gray' : 'info'}>{program.publishSetting === PublishSetting.PRIVATE ? '非公開' : program.publishSetting === PublishSetting.LIMITED ? '限定公開' : '公開'}</Badge></span>
+                            {program.broadcastSchedule === BroadcastSchedule.WEEKLY && program.broadcastDayofweek && program.broadcastDayofweek.length > 0 && (
+                                <span>配信曜日: {program.broadcastDayofweek.map(day => {
+                                    switch (day) {
+                                        case 'monday':
+                                            return '月';
+                                        case 'tuesday':
+                                            return '火';
+                                        case 'wednesday':
+                                            return '水';
+                                        case 'thursday':
+                                            return '木';
+                                        case 'friday':
+                                            return '金';
+                                        case 'saturday':
+                                            return '土';
+                                        case 'sunday':
+                                            return '日';
+                                        default:
+                                            return day;
+                                    }
+                                }).join(', ')}</span>
+                            )}
+                            {program.publishedAt && (
+                                <span>公開日: {new Date(program.publishedAt).toLocaleDateString()}</span>
+                            )}
+                        </div>
+                        {program.status !== ProgramStatus.DRAFT && program.publishSetting !== PublishSetting.PRIVATE && broadcastHistories && broadcastHistories.length > 0 && (
+                            <div className="flex items-center gap-2 mb-2">
+                                <span>配信URL:</span>
+                                <div className="grid w-full max-w-200">
+                                    <div className="relative">
+                                        <label htmlFor="publish-url" className="sr-only">
+                                            配信URL
+                                        </label>
+                                        <input
+                                            id="publish-url"
+                                            type="text"
+                                            className="col-span-6 block w-full rounded-lg border border-gray-300 bg-gray-50 px-2.5 py-3 text-sm text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                                            value={`https://ppp-jjoi5qw7aa-an.a.run.app/api/v1/podcast/rss/${program.id}${program.publishSetting === PublishSetting.LIMITED ? `?privateKey=${program.privateKey}` : ''}`}
+                                            disabled
+                                            readOnly
+                                        />
+                                        <ClipboardWithIconText
+                                            valueToCopy={`https://ppp-jjoi5qw7aa-an.a.run.app/api/v1/podcast/rss/${program.id}${program.publishSetting === PublishSetting.LIMITED ? `?privateKey=${program.privateKey}` : ''}`}/>
+                                    </div>
+                                </div>
+                            </div>
                         )}
 
-                        {segments && segments.length > 0 && broadcastHistories && broadcastHistories.length === 0 &&
-                            <Button color="blue" onClick={handleGenerateFirstPodCast}
-                                    disabled={generatePodcastState.generating}>
-                                第0回を作成(お試し作成)
-                            </Button>
-                        }
-
+                        <p className="p-5 bg-white rounded-lg border border-gray-200 text-gray-600">{program.description}</p>
                     </div>
-                </div>
-                <div className="flex items-center gap-4 mb-2">
-                    <span className="text-sm">プログラム時間: {program.programMinutes}分</span>
-                    <span className="text-sm">定期作成: <ProgramStatusBadge status={program.status}></ProgramStatusBadge></span>
-                    <span className="text-sm">配信スケジュール: {program.broadcastSchedule === BroadcastSchedule.DAILY ? '毎日' : '毎週'}</span>
-                    <span className="text-sm">公開設定: <Badge className="inline-block" color={program.publishSetting === PublishSetting.PRIVATE ? 'gray': 'info'}>{program.publishSetting === PublishSetting.PRIVATE ? '非公開' : program.publishSetting === PublishSetting.LIMITED ? '限定公開' : '公開'}</Badge></span>
-                    {program.broadcastSchedule === BroadcastSchedule.WEEKLY && program.broadcastDayofweek && program.broadcastDayofweek.length > 0 && (
-                        <span>配信曜日: {program.broadcastDayofweek.map(day => {
-                            switch (day) {
-                                case 'monday':
-                                    return '月';
-                                case 'tuesday':
-                                    return '火';
-                                case 'wednesday':
-                                    return '水';
-                                case 'thursday':
-                                    return '木';
-                                case 'friday':
-                                    return '金';
-                                case 'saturday':
-                                    return '土';
-                                case 'sunday':
-                                    return '日';
-                                default:
-                                    return day;
-                            }
-                        }).join(', ')}</span>
-                    )}
-                    {program.publishedAt && (
-                        <span>公開日: {new Date(program.publishedAt).toLocaleDateString()}</span>
-                    )}
-                </div>
-                {program.status !== ProgramStatus.DRAFT && program.publishSetting !== PublishSetting.PRIVATE && broadcastHistories && broadcastHistories.length > 0 && (
-                    <div>
-                        {/* TODO URLを取得 */}
-                        配信URL: <code>https://ppp-jjoi5qw7aa-an.a.run.app/api/v1/podcast/rss/{program.id}{program.publishSetting === PublishSetting.LIMITED && `?privateKey=${program.privateKey}`}</code>
-                    </div>
-                )}
-                <div>
 
                 </div>
-                <p className="text-gray-600">{program.description}</p>
+
             </header>
 
             <Tabs variant="underline" ref={tabsRef} onActiveTabChange={(tab) => setActiveTab(tab)}>

@@ -42,6 +42,7 @@ class ListenerProgramSchema(BaseSchema):
     private_key: Optional[str] = Field(None, description="限定公開用のプライベートキー（32文字以上）")
     published_at: Optional[datetime] = Field(None, description="公開日時")
     number_of_broadcast: int = Field(0, description="配信回数")
+    cover_art_uri: Optional[str] = Field(None, description="ポッドキャストカバーアート画像のURI（gs://形式）")
 
 
 class ListenerProgramCreateSchema(BaseCreateSchema):
@@ -59,6 +60,7 @@ class ListenerProgramCreateSchema(BaseCreateSchema):
     status: ProgramStatus = Field(ProgramStatus.DRAFT, description="番組ステータス（draft:下書き、active:アクティブ、pause:一時停止）")
     publish_setting: PublishSetting = Field(PublishSetting.PRIVATE, description="公開設定（private:非公開、limited:限定公開、publish:公開）")
     private_key: Optional[str] = Field(None, description="限定公開用のプライベートキー（32文字以上、limited設定時に必須）")
+    cover_art_uri: Optional[str] = Field(None, description="ポッドキャストカバーアート画像のURI（gs://形式）")
 
     @model_validator(mode="after")
     def validate_private_key(self) -> Self:
@@ -125,6 +127,7 @@ class ListenerProgramUpdateSchema(BaseUpdateSchema):
     publish_setting: Optional[PublishSetting] = Field(None, description="公開設定（private:非公開、limited:限定公開、publish:公開）")
     private_key: Optional[str] = Field(None, description="限定公開用のプライベートキー（32文字以上、limited設定時に必須）")
     published_at: Optional[datetime] = Field(None, description="公開日時")
+    cover_art_uri: Optional[str] = Field(None, description="ポッドキャストカバーアート画像のURI（gs://形式）")
 
     @field_validator("title", "description")
     @classmethod
