@@ -112,6 +112,24 @@ class RSSService:
         fg.podcast.itunes_owner(name="Personalized Podcast Platform", email="support@ppp.example.com")  # Default owner info
         fg.podcast.itunes_explicit("no")  # Use "no" instead of False
 
+        # Cover art image tags
+        if program.cover_art_uri:
+            # Construct cover URL
+            if program.publish_setting == PublishSetting.PUBLISH:
+                # Public access - no private_key needed
+                cover_url = f"{self.settings.API_BASE_URL}/api/v1/podcast/cover/{program.id}"
+            else:
+                # Limited access - include private_key
+                cover_url = f"{self.settings.API_BASE_URL}/api/v1/podcast/cover/{program.id}?private_key={private_key}"
+        else:
+            cover_url = f"{self.settings.API_BASE_URL}/ppp_logo.jpeg"
+
+        # iTunes image tag
+        fg.podcast.itunes_image(cover_url)
+
+        # Standard RSS image tag
+        fg.image(url=cover_url, title=program.title, link=f"{self.settings.API_BASE_URL}/api/v1/podcast/rss/{program.id}")
+
         # Add episodes from broadcast histories
         for history in histories:
             self._add_episode_to_feed(fg, program, history, private_key)

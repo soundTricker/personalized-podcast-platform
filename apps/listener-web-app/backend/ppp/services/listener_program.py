@@ -46,6 +46,7 @@ class ListenerProgramService(BaseService[ListenerProgram]):
         status: ProgramStatus = ProgramStatus.DRAFT,
         publish_setting: PublishSetting = PublishSetting.PRIVATE,
         private_key: Optional[str] = None,
+        cover_art_uri: Optional[str] = None,
     ) -> ListenerProgram:
         """
         Create a new listener program.
@@ -62,6 +63,7 @@ class ListenerProgramService(BaseService[ListenerProgram]):
             status: The status of the program.
             publish_setting: The publish setting of the program.
             private_key: The private key for limited access. If None and publish_setting is LIMITED, a random key will be generated.
+            cover_art_uri: The URI for podcast cover art (gs:// format).
 
         Returns:
             The created listener program.
@@ -88,6 +90,7 @@ class ListenerProgramService(BaseService[ListenerProgram]):
             status=status,
             publish_setting=publish_setting,
             private_key=private_key,
+            cover_art_uri=cover_art_uri,
         )
 
     async def update_listener_program(
@@ -104,6 +107,7 @@ class ListenerProgramService(BaseService[ListenerProgram]):
         publish_setting: Optional[PublishSetting] = None,
         private_key: Optional[str] = None,
         published_at: Optional[datetime] = None,
+        cover_art_uri: Optional[str] = None,
     ) -> Optional[ListenerProgram]:
         """
         Update a listener program.
@@ -121,6 +125,7 @@ class ListenerProgramService(BaseService[ListenerProgram]):
             publish_setting: The new publish setting of the program.
             private_key: The private key for limited access.
             published_at: The date and time when the program was published.
+            cover_art_uri: The URI for podcast cover art (gs:// format).
 
         Returns:
             The updated listener program if found, None otherwise.
@@ -146,6 +151,8 @@ class ListenerProgramService(BaseService[ListenerProgram]):
             update_data["publish_setting"] = publish_setting
         if private_key is not None:
             update_data["private_key"] = private_key
+        if cover_art_uri is not None:
+            update_data["cover_art_uri"] = cover_art_uri
 
         update_data["updated_at"] = datetime.now(tz=timezone.utc)
 

@@ -50,6 +50,7 @@ async def create_listener_program(
         status=listener_program.status,
         publish_setting=listener_program.publish_setting,
         private_key=listener_program.private_key,
+        cover_art_uri=listener_program.cover_art_uri,
     )
 
 
@@ -116,6 +117,7 @@ async def update_listener_program(
         publish_setting=listener_program.publish_setting,
         private_key=listener_program.private_key,
         published_at=listener_program.published_at,
+        cover_art_uri=listener_program.cover_art_uri,
     )
 
     return updated_program

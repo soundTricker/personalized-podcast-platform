@@ -1,19 +1,3 @@
-/**
- * Copyright 2025 Keisuke Tominaga a.k.a soundTricker
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 // generated with @7nohe/openapi-react-query-codegen@1.6.2 
 
 import { UseMutationOptions, UseQueryOptions, useMutation, useQuery } from "@tanstack/react-query";
@@ -49,6 +33,10 @@ export const usePodcastServiceGetApiV1PodcastRssByProgramId = <TData = Common.Po
   privateKey?: string;
   programId: string;
 }, queryKey?: TQueryKey, options?: Omit<UseQueryOptions<TData, TError>, "queryKey" | "queryFn">) => useQuery<TData, TError>({ queryKey: Common.UsePodcastServiceGetApiV1PodcastRssByProgramIdKeyFn({ privateKey, programId }, queryKey), queryFn: () => PodcastService.getApiV1PodcastRssByProgramId({ privateKey, programId }) as TData, ...options });
+export const usePodcastServiceGetApiV1PodcastCoverByProgramId = <TData = Common.PodcastServiceGetApiV1PodcastCoverByProgramIdDefaultResponse, TError = unknown, TQueryKey extends Array<unknown> = unknown[]>({ privateKey, programId }: {
+  privateKey?: string;
+  programId: string;
+}, queryKey?: TQueryKey, options?: Omit<UseQueryOptions<TData, TError>, "queryKey" | "queryFn">) => useQuery<TData, TError>({ queryKey: Common.UsePodcastServiceGetApiV1PodcastCoverByProgramIdKeyFn({ privateKey, programId }, queryKey), queryFn: () => PodcastService.getApiV1PodcastCoverByProgramId({ privateKey, programId }) as TData, ...options });
 export const usePodcastServiceGetApiV1PodcastAudioByProgramIdByBroadcastHistoryId = <TData = Common.PodcastServiceGetApiV1PodcastAudioByProgramIdByBroadcastHistoryIdDefaultResponse, TError = unknown, TQueryKey extends Array<unknown> = unknown[]>({ broadcastHistoryId, privateKey, programId }: {
   broadcastHistoryId: string;
   privateKey?: string;

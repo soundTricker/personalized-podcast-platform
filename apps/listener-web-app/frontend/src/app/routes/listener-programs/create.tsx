@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {Button, Card, Checkbox, Label, Select, Textarea, TextInput, HelperText} from "flowbite-react";
+import {Button, Card, Checkbox, Label, Select, Textarea, TextInput, HelperText, FileInput} from "flowbite-react";
 import {useRadioCastsServiceGetApiV1RadioCasts, useRadioCastsServicePostApiV1RadioCasts} from "@api/queries";
 import {prefetchUseRadioCastsServiceGetApiV1RadioCasts} from "@api/queries/prefetch";
 import {useEffect, useRef, useState} from "react";
@@ -34,6 +34,11 @@ import {Route} from './+types/create';
 import {dehydrate, QueryClient} from "@tanstack/react-query";
 import {useNavigate} from "react-router";
 import HelpIcon from "@/components/HelpIcon.tsx";
+import { getStorage, ref, uploadBytes } from 'firebase/storage';
+import { initializeApp } from 'firebase/app';
+import { firebaseConfig } from '@/firebase/config';
+import { useAuth } from '@/firebase/auth';
+import FBImage from '@/components/FBImage';
 
 // フォームのスキーマ定義
 const formSchema = z.object({
@@ -45,7 +50,8 @@ const formSchema = z.object({
     broadcastSchedule: z.enum([BroadcastSchedule.DAILY, BroadcastSchedule.WEEKLY]),
     broadcastDayofweek: z.array(z.string()),
     publishSetting: z.enum([PublishSetting.PRIVATE, PublishSetting.LIMITED, PublishSetting.PUBLISH]),
-    privateKey: z.string().optional()
+    privateKey: z.string().optional(),
+    coverArtUri: z.string().optional()
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -59,7 +65,8 @@ const defaultFormValue: FormValues = {
     broadcastSchedule: BroadcastSchedule.DAILY,
     broadcastDayofweek: [],
     publishSetting: PublishSetting.PRIVATE,
-    privateKey: ""
+    privateKey: "",
+    coverArtUri: ""
 };
 
 export async function loader({}: Route.LoaderArgs) {
@@ -71,14 +78,26 @@ export async function loader({}: Route.LoaderArgs) {
 }
 
 
+// Initialize Firebase app for storage
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
+
 export default function CreatePage() {
     // フォーム送信中の状態管理
     const [isSubmitting, setIsSubmitting] = useState(false);
     // エラーメッセージの状態管理
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+    // 画像アップロード関連の状態管理
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
+
     // ラジオキャストの取得
     const {data: radioCasts, refetch: refetchRadioCasts} = useRadioCastsServiceGetApiV1RadioCasts();
+
+    // 認証情報の取得
+    const { currentUser } = useAuth();
 
     // モーダルの表示/非表示を制御する状態
     const [showModal, setShowModal] = useState(false);
@@ -112,6 +131,44 @@ export default function CreatePage() {
         return result;
     };
 
+    // 画像アップロード機能
+    const handleImageUpload = async () => {
+        if (!selectedFile || !currentUser) {
+            return;
+        }
+
+        try {
+            setIsUploading(true);
+            setUploadError(null);
+
+            // Generate random filename with extension
+            const fileExtension = selectedFile.name.split('.').pop();
+            const randomString = generateRandomString(16);
+            const fileName = `${randomString}.${fileExtension}`;
+            const filePath = `listener/${currentUser.uid}/${fileName}`;
+
+            // Create storage reference
+            const storageRef = ref(storage, filePath);
+
+            // Upload file
+            await uploadBytes(storageRef, selectedFile);
+
+            // Create GCS URI
+            const gcsUri = `gs://${firebaseConfig.storageBucket}/${filePath}`;
+
+            // Update form with the GCS URI
+            form.setFieldValue('coverArtUri', gcsUri);
+
+            // Clear selected file
+            setSelectedFile(null);
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            setUploadError('画像のアップロードに失敗しました。もう一度お試しください。');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     // TanStack Formの初期化
     const form = useForm({
         defaultValues: defaultFormValue,
@@ -124,7 +181,8 @@ export default function CreatePage() {
                 const program = await ListenerProgramsService.postApiV1ListenerPrograms({
                     requestBody: {
                         ...value,
-                        status: ProgramStatus.DRAFT
+                        status: ProgramStatus.DRAFT,
+                        cover_art_uri: value.coverArtUri || null
                     }
                 });
                 // 成功したらセグメント作成ページへ遷移
@@ -602,6 +660,63 @@ export default function CreatePage() {
                             </div>
                         )
                     })}
+
+                    {/* カバー画像アップロード */}
+                    <div>
+                        <div className="mb-2 block">
+                            <Label htmlFor="coverImage">
+                                <div className="flex flex-row items-center gap-1">
+                                    <span>カバー画像</span>
+                                    <HelpIcon>
+                                        ポッドキャストのカバー画像をアップロードできます。<br/>
+                                        JPEGまたはPNG形式の画像ファイルを選択してください。
+                                    </HelpIcon>
+                                </div>
+                            </Label>
+                        </div>
+
+                        {/* 現在のカバー画像表示 */}
+                        {form.state.values.coverArtUri && (
+                            <div className="mb-4">
+                                <p className="text-sm text-gray-600 mb-2">現在のカバー画像:</p>
+                                <FBImage 
+                                    path={form.state.values.coverArtUri.replace('gs://' + firebaseConfig.storageBucket + '/', '')}
+                                    alt="カバー画像"
+                                    className="w-32 h-32 object-cover rounded-lg border"
+                                />
+                            </div>
+                        )}
+
+                        <div className="flex gap-2 items-end">
+                            <div className="flex-1">
+                                <FileInput
+                                    id="coverImage"
+                                    accept="image/jpeg,image/png,image/jpg"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        setSelectedFile(file || null);
+                                        setUploadError(null);
+                                    }}
+                                />
+                            </div>
+                            <Button
+                                type="button"
+                                color="light"
+                                onClick={handleImageUpload}
+                                disabled={!selectedFile || isUploading || !currentUser}
+                            >
+                                {isUploading ? "アップロード中..." : "アップロード"}
+                            </Button>
+                        </div>
+
+                        {uploadError && (
+                            <div className="text-red-500 text-sm mt-1">{uploadError}</div>
+                        )}
+
+                        <HelperText className="mt-1">
+                            画像ファイルを選択してアップロードボタンをクリックしてください。
+                        </HelperText>
+                    </div>
 
                     {errorMessage && (
                         <div className="text-red-500">{errorMessage}</div>

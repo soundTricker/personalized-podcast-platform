@@ -1,19 +1,3 @@
-/**
- * Copyright 2025 Keisuke Tominaga a.k.a soundTricker
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 // generated with @7nohe/openapi-react-query-codegen@1.6.2 
 
 import { UseQueryResult } from "@tanstack/react-query";
@@ -77,6 +61,13 @@ export const UsePodcastServiceGetApiV1PodcastRssByProgramIdKeyFn = ({ privateKey
   privateKey?: string;
   programId: string;
 }, queryKey?: Array<unknown>) => [usePodcastServiceGetApiV1PodcastRssByProgramIdKey, ...(queryKey ?? [{ privateKey, programId }])];
+export type PodcastServiceGetApiV1PodcastCoverByProgramIdDefaultResponse = Awaited<ReturnType<typeof PodcastService.getApiV1PodcastCoverByProgramId>>;
+export type PodcastServiceGetApiV1PodcastCoverByProgramIdQueryResult<TData = PodcastServiceGetApiV1PodcastCoverByProgramIdDefaultResponse, TError = unknown> = UseQueryResult<TData, TError>;
+export const usePodcastServiceGetApiV1PodcastCoverByProgramIdKey = "PodcastServiceGetApiV1PodcastCoverByProgramId";
+export const UsePodcastServiceGetApiV1PodcastCoverByProgramIdKeyFn = ({ privateKey, programId }: {
+  privateKey?: string;
+  programId: string;
+}, queryKey?: Array<unknown>) => [usePodcastServiceGetApiV1PodcastCoverByProgramIdKey, ...(queryKey ?? [{ privateKey, programId }])];
 export type PodcastServiceGetApiV1PodcastAudioByProgramIdByBroadcastHistoryIdDefaultResponse = Awaited<ReturnType<typeof PodcastService.getApiV1PodcastAudioByProgramIdByBroadcastHistoryId>>;
 export type PodcastServiceGetApiV1PodcastAudioByProgramIdByBroadcastHistoryIdQueryResult<TData = PodcastServiceGetApiV1PodcastAudioByProgramIdByBroadcastHistoryIdDefaultResponse, TError = unknown> = UseQueryResult<TData, TError>;
 export const usePodcastServiceGetApiV1PodcastAudioByProgramIdByBroadcastHistoryIdKey = "PodcastServiceGetApiV1PodcastAudioByProgramIdByBroadcastHistoryId";
