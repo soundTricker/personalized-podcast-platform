@@ -18,8 +18,10 @@ from typing import List, Optional
 from fastapi import Depends, HTTPException
 from feedgen.feed import FeedGenerator
 
+from ppp.models.listener import Listener
 from ppp.models.listener_program import ListenerProgram, PublishSetting
 from ppp.models.program_broadcast_history import ProgramBroadcastHistory, ProgramBroadcastHistoryStatus
+from ppp.services.listener import get_listener_service, ListenerService
 from ppp.services.listener_program import ListenerProgramService, get_listener_program_service
 from ppp.services.program_broadcast_history import ProgramBroadcastHistoryService, get_program_broadcast_history_service
 from ppp.settings import get_settings
@@ -32,12 +34,14 @@ class RSSService:
 
     def __init__(
         self,
+        listener_service: ListenerService,
         listener_program_service: ListenerProgramService,
         program_broadcast_history_service: ProgramBroadcastHistoryService,
     ):
         """
         Initialize the RSS service.
         """
+        self.listener_service = listener_service
         self.listener_program_service = listener_program_service
         self.program_broadcast_history_service = program_broadcast_history_service
         self.settings = get_settings()
@@ -72,17 +76,24 @@ class RSSService:
         # 3. Get ProgramBroadcastHistory with status=success
         all_histories = await self.program_broadcast_history_service.get_broadcast_histories_by_program_id(program_id)
         success_histories = [h for h in all_histories if h.status == ProgramBroadcastHistoryStatus.SUCCESS]
+        
+        # 4. Get Listener
+        listener = await self.listener_service.get_listener_by_id(program.listener_id)
 
-        # 4. Generate RSS feed
-        rss_xml = self._create_rss_feed(program, success_histories, private_key)
+        if not listener:
+            raise HTTPException(status_code=404, detail="Listener not found")
+
+        # 5. Generate RSS feed
+        rss_xml = self._create_rss_feed(listener, program, success_histories, private_key)
 
         return rss_xml
 
-    def _create_rss_feed(self, program: ListenerProgram, histories: List[ProgramBroadcastHistory], private_key: Optional[str] = None) -> str:
+    def _create_rss_feed(self, listener: Listener, program: ListenerProgram, histories: List[ProgramBroadcastHistory], private_key: Optional[str] = None) -> str:
         """
         Create RSS feed using feedgen library.
 
         Args:
+            listener: The Listener instance
             program: The ListenerProgram instance.
             histories: List of successful ProgramBroadcastHistory instances.
             private_key: The private key for limited access (optional).
@@ -109,7 +120,9 @@ class RSSService:
         fg.podcast.itunes_author("Personalized Podcast Platform -PPP-")  # Default author
         fg.podcast.itunes_subtitle(program.description[:255])  # Subtitle (max 255 chars)
         fg.podcast.itunes_summary(program.description)
-        fg.podcast.itunes_owner(name="Personalized Podcast Platform", email="support@ppp.example.com")  # Default owner info
+
+        # TODO override owner each program
+        fg.podcast.itunes_owner(name="Personalized Podcast Platform", email=listener.email)  # Default owner info
         fg.podcast.itunes_explicit("no")  # Use "no" instead of False
 
         # Cover art image tags
@@ -189,10 +202,11 @@ class RSSService:
 
 
 def get_rss_service(
+    listener_service=Depends(get_listener_service),
     listener_program_service=Depends(get_listener_program_service),
     program_broadcast_history_service=Depends(get_program_broadcast_history_service),
 ) -> RSSService:
     """
     Dependency to get the RSSService.
     """
-    return RSSService(listener_program_service, program_broadcast_history_service)
+    return RSSService(listener_service, listener_program_service, program_broadcast_history_service)
