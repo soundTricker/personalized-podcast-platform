@@ -133,8 +133,8 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
     const [sending, setSending] = useState(false);
     const [partialMessage, setPartialMessage] = useState<ChatMessage | null>(null);
     const [inputValue, setInputValue] = useState('');
-    const [sessionId, setSessionId] = useLocalStorage<string | null>("currentSessionId", null);
     const {currentUser} = useAuth();
+    const [sessionId, setSessionId] = useLocalStorage<string | null>("currentSessionId", null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const {
@@ -150,7 +150,7 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
     }, UseAgentsServiceGetApiV1AgentsByAppNameSessionBySessionIdKeyFn({
         appName,
         sessionId: sessionId!
-    }), {enabled: !!sessionId})
+    }), {enabled: !!sessionId && !!currentUser})
 
     if (session && session.events?.length && messages.length == 1) {
         session.events.filter(event => event.content && event.content.parts && event.content.parts.length).map((event) => {
@@ -160,7 +160,7 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
             }
         });
     }
-    if (sessionError && !isPendingCreateSession) {
+    if (sessionError && !isPendingCreateSession && currentUser) {
         createSessionMutate({appName, requestBody: {}});
     }
 
@@ -290,10 +290,10 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
 
 
     useEffect(() => {
-        if (!sessionId && !isPendingCreateSession) {
+        if (!sessionId && !isPendingCreateSession && currentUser) {
             createSessionMutate({appName: appName, requestBody: {}})
         }
-    }, [sessionId, createSessionMutate, appName]);
+    }, [sessionId, createSessionMutate, appName, currentUser]);
 
     // Auto-scroll to bottom when new messages are added
     useEffect(() => {
