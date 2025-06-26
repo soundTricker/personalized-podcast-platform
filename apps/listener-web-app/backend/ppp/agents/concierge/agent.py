@@ -216,8 +216,10 @@ class RadioProgramCreatingAssistantAgent(Agent):
           - Gmailコーナーの場合は `{GoogleApiScope.GmailReadOnly}`が含まれていること
           - カレンダーコーナーの場合は `{GoogleApiScope.CalendarReadOnly}`が含まれていること
         をチェックする。
-        含まれていない場合は `get_google_oauth2_url` を呼び出し Google OAuth2 URLを取得し、
-        取得したURLへの遷移を行い、Google APIの認可が必要が必要な旨を伝える。
+        含まれていない場合は `get_google_oauth2_url` ツール を呼び出し Google OAuth2 URLを取得し、
+        取得したURLへの遷移を行い、Google APIの認可が必要が必要な旨を伝える。 
+        ※ 勝手にこのURLは作成しないで、必ず ツールを呼び出してください。
+        
         完了したら「完了したよ」と伝えてもらって、このチェックを再度行う。
         このチェックはユーザのscopesパラメータが条件を満たすか、ユーザーが 「Gmailコーナー や カレンダーコーナーの作成をやめる」まで行う。 
 
