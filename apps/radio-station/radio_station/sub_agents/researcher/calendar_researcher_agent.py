@@ -19,6 +19,9 @@ import os
 from typing import Optional
 
 import google.auth
+from aiogoogle import Aiogoogle
+from aiogoogle.auth.creds import ClientCreds, UserCreds
+from aiogoogle.excs import AiogoogleError
 from google.adk.agents import Agent, SequentialAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models import LlmRequest
@@ -28,7 +31,6 @@ from google.adk.tools import ToolContext
 from google.auth.transport.requests import Request
 from google.genai import types
 from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
 from pydantic import Field
 
 from radio_station.constants import THINKING_MODEL, GoogleApiScope
@@ -56,7 +58,7 @@ class CalendarResearchResult(BaseModel):
     events: list[CalendarEvent] = Field(description="List of calendar events")
 
 
-def list_calendar_events(
+async def list_calendar_events(
     calendar_id: str,
     start_time: str,
     end_time: str,
@@ -99,11 +101,7 @@ def list_calendar_events(
         and listener.encrypted_google_access_token
         and listener.encrypted_google_refresh_token
     ):
-        access_token = decrypt(listener.encrypted_google_access_token)
-        refresh_token = decrypt(listener.encrypted_google_refresh_token)
-        creds = Credentials(
-            access_token, refresh_token=refresh_token, token_uri="https://oauth2.googleapis.com/token", client_id=os.getenv("GOOGLE_CLIENT_ID"), client_secret=os.getenv("GOOGLE_CLIENT_SECRET")
-        )
+        creds = UserCreds(access_token=decrypt(listener.encrypted_google_access_token), refresh_token=decrypt(listener.encrypted_google_refresh_token))
 
     if not creds or not creds.valid:
         # If the access token is expired, refresh it with the refresh token.
@@ -113,23 +111,23 @@ def list_calendar_events(
             creds, _ = google.auth.default()
         tool_context.state["calendar_tool_tokens"] = json.loads(creds.to_json())
 
-    logger.info("call list_calendar_events tools")
-
-    service = build("calendar", "v3", credentials=creds)
-    events_result = (
-        service.events()
-        .list(
-            calendarId=calendar_id,
-            timeMin=start_time + "Z" if start_time else None,
-            timeMax=end_time + "Z" if end_time else None,
-            maxResults=limit,
-            singleEvents=True,
-            orderBy="startTime",
-        )
-        .execute()
-    )
-    events = events_result.get("items", [])
-    return events
+    try:
+        async with Aiogoogle(user_creds=creds, client_creds=ClientCreds(client_id=os.getenv("GOOGLE_CLIENT_ID"), client_secret=os.getenv("GOOGLE_CLIENT_SECRET"))) as aiogoogle_client:
+            service = await aiogoogle_client.discover("calendar", "v3")
+            request = service.events.list(
+                calendarId=calendar_id,
+                timeMin=start_time + "Z" if start_time else None,
+                timeMax=end_time + "Z" if end_time else None,
+                maxResults=limit,
+                singleEvents=True,
+                orderBy="startTime",
+            )
+            response = await aiogoogle_client.as_user(request)
+            events = response.get("items", [])
+            return events
+    except AiogoogleError as e:
+        logger.exception(f"Got error err:{e}")
+        return []
 
 
 class CalendarResearchAgent(Agent):
@@ -150,7 +148,7 @@ class CalendarResearchAgent(Agent):
                 Your tasks are:
                 1. Fetch calendar events for a specified period by using the list_calendar_events tool
                     - Searching period and calendar id in `Calendar Information`
-                    - You must use list_calendar_events tool to fetch calendar events.1
+                    - You must use list_calendar_events tool to fetch calendar events.
                 2. Process each events
                     - When the event has a location.
                         2-1. search geolocation by using `get_geolocation_for_place` tool.
@@ -158,6 +156,9 @@ class CalendarResearchAgent(Agent):
                 3. Create a summary of the events within the target period based on Task Info.
                     - When Calendar Information is not found or got error, please return JSON Object like `{{"summary": "No event found in this schedule."}}`
                     - When weather can be obtained, please add weather information to summary.
+                    
+                Constrains:
+                - **USE** the list_calendar_events tool **ONLY ONCE**.
 
                 Output Format:
                 JSON, Japanese.
@@ -185,8 +186,6 @@ class CalendarResearchAgent(Agent):
             before_agent_callback=self.make_calendar_info,
             after_agent_callback=self.log_content,
             output_key=ResearcherState.research_result(task_id),
-            disallow_transfer_to_parent=True,
-            disallow_transfer_to_peers=True,
             include_contents="none",
             **kwargs,
         )
