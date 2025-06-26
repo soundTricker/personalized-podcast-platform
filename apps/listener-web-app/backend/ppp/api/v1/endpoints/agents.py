@@ -194,6 +194,10 @@ async def get_session(
     session = await session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id)
     if session is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+
+    if session.state["user:listener_id"] != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+
     return session
 
 
