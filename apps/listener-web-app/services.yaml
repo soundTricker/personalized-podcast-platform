@@ -35,6 +35,9 @@ spec:
             - name: nginx-conf-secret
               mountPath: /etc/nginx/conf.d/
               readOnly: true
+            - name: site-verify-html
+              mountPath: /usr/share/nginx/html/
+              readOnly: true
           resources:
             limits:
               cpu: "1"
@@ -224,3 +227,9 @@ spec:
             items:
               - key: latest
                 path: default.conf
+        - name: site-verify-html
+          secret:
+            secretName: site-verify-html
+            items:
+              - key: latest
+                path: google36f9c9056e4fb33e.html
