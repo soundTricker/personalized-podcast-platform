@@ -142,7 +142,7 @@ class CalendarResearchAgent(Agent):
                 3. Create a summary of the events within the target period based on Task Info.
                     - When Calendar Information is not found or got error, please return JSON Object like `{{"summary": "No event found in this schedule."}}`
                     - When weather can be obtained, please add weather information to summary.
-                    
+
                 Constrains:
                 - **USE** the list_calendar_events tool **ONLY ONCE**.
 

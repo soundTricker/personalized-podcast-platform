@@ -57,8 +57,12 @@ class GmailResearchAgent(Agent):
                 1. Search gmail messages for a specified period by using the `list_gmail_messages` tool
                     - Searching query in `Gmail Query Information`
                     - You must use `list_gmail_messages` tool to search gmail mails. max_results should be 100
+                    - `list_gmail_messages` 
                 2. Create a summary of the mail within on Task Info.
                     - When Gmail Query Information is not found, please return JSON Object like `{"summary": "no messages found in this query"}`
+
+                Constrains:
+                - **USE** the list_gmail_messages tool **ONLY ONCE**.
 
                 Output Format:
                 JSON, Japanese.
