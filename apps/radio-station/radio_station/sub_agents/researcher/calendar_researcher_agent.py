@@ -13,12 +13,10 @@
 # limitations under the License.
 
 import datetime
-import json
 import logging
 import os
 from typing import Optional
 
-import google.auth
 from aiogoogle import Aiogoogle
 from aiogoogle.auth.creds import ClientCreds, UserCreds
 from aiogoogle.excs import AiogoogleError
@@ -28,9 +26,7 @@ from google.adk.models import LlmRequest
 from google.adk.models.llm_response import LlmResponse
 from google.adk.planners import BuiltInPlanner
 from google.adk.tools import ToolContext
-from google.auth.transport.requests import Request
 from google.genai import types
-from google.oauth2.credentials import Credentials
 from pydantic import Field
 
 from radio_station.constants import THINKING_MODEL, GoogleApiScope
@@ -93,23 +89,13 @@ async def list_calendar_events(
     # Check if the tokes were already in the session state, which means the user
     # has already gone through the OAuth flow and successfully authenticated and
     # authorized the tool to access their calendar.
-    if "calendar_tool_tokens" in tool_context.state:
-        creds = Credentials.from_authorized_user_info(tool_context.state["calendar_tool_tokens"], ["https://www.googleapis.com/auth/calendar"])
-    elif (
+    if (
         (listener := GlobalState.get_listener(tool_context.state))
         and GoogleApiScope.CalendarReadOnly in listener.scopes
         and listener.encrypted_google_access_token
         and listener.encrypted_google_refresh_token
     ):
         creds = UserCreds(access_token=decrypt(listener.encrypted_google_access_token), refresh_token=decrypt(listener.encrypted_google_refresh_token))
-
-    if not creds or not creds.valid:
-        # If the access token is expired, refresh it with the refresh token.
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            creds, _ = google.auth.default()
-        tool_context.state["calendar_tool_tokens"] = json.loads(creds.to_json())
 
     try:
         async with Aiogoogle(user_creds=creds, client_creds=ClientCreds(client_id=os.getenv("GOOGLE_CLIENT_ID"), client_secret=os.getenv("GOOGLE_CLIENT_SECRET"))) as aiogoogle_client:
@@ -123,7 +109,7 @@ async def list_calendar_events(
                 orderBy="startTime",
             )
             response = await aiogoogle_client.as_user(request)
-            events = response.get("items", [])
+            events = response.json.get("items", [])
             return events
     except AiogoogleError as e:
         logger.exception(f"Got error err:{e}")
@@ -184,15 +170,9 @@ class CalendarResearchAgent(Agent):
             ),
             before_model_callback=self.insert_task_info,
             before_agent_callback=self.make_calendar_info,
-            after_agent_callback=self.log_content,
             output_key=ResearcherState.research_result(task_id),
-            include_contents="none",
             **kwargs,
         )
-
-    def log_content(self, callback_context: CallbackContext) -> Optional[LlmResponse]:
-        research_results = callback_context.state[ResearcherState.research_result(self.task_id)]
-        logger.info(f"calendar result result: {research_results}")
 
     def insert_task_info(self, callback_context: CallbackContext, llm_request: LlmRequest) -> Optional[LlmResponse]:
         llm_request.contents.append(
