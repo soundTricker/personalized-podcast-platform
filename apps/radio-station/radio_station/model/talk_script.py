@@ -86,7 +86,7 @@ class TalkScriptSegment(BaseModel):
             m[rc.id] = rc.name
 
         for s in self.scripts:
-            if s.radio_cast_id not in s:
+            if s.radio_cast_id not in m:
                 m[s.radio_cast_id] = s.radio_cast_id
 
         return "\n".join([f"{m[s.radio_cast_id]}: {s.content}" for s in self.scripts])
