@@ -109,7 +109,7 @@ async def list_calendar_events(
                 orderBy="startTime",
             )
             response = await aiogoogle_client.as_user(request)
-            events = response.json.get("items", [])
+            events = response.get("items", [])
             return events
     except AiogoogleError as e:
         logger.exception(f"Got error err:{e}")

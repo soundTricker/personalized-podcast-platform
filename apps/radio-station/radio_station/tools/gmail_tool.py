@@ -74,7 +74,7 @@ async def list_gmail_messages(q: str, max_results: int, tool_context: ToolContex
             response = await aiogoogle_client.as_user(request)
 
             get_message_requests = []
-            for message in response.json.get("messages", []):
+            for message in response.get("messages", []):
                 get_message_requests.append(gmail_v1.users.messages.get(userId="me", id=message["id"]))
 
             if not get_message_requests:
