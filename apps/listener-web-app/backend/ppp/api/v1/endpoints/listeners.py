@@ -16,17 +16,10 @@ from fastapi import APIRouter, Depends, status
 
 from ppp.models.listener import Listener
 from ppp.schemas.listener import ListenerCreateSchema, ListenerSchema
-from ppp.services.listener import ListenerService
+from ppp.services.listener import ListenerService, get_listener_service
 from ppp.utils.auth import get_current_user
 
 router = APIRouter()
-
-
-def get_listener_service() -> ListenerService:
-    """
-    Dependency to get the ListenerService.
-    """
-    return ListenerService()
 
 
 @router.post("/signup", response_model=ListenerSchema, status_code=status.HTTP_201_CREATED)

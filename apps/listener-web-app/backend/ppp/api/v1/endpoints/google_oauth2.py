@@ -26,9 +26,10 @@ import requests
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
 
+from ppp.services.listener import ListenerService, get_listener_service
 from ppp.settings import Settings, get_settings
 from ppp.utils.auth import get_current_user_id
-from ppp.utils.google_oauth2 import generate_auth_url
+from ppp.utils.google_oauth2 import GOOGLE_TOKEN_URL, generate_auth_url
 
 router = APIRouter()
 
@@ -58,6 +59,8 @@ async def google_oauth2(
 async def google_oauth2_callback(
     code: str = Query(..., description="The authorization code"),
     state: str = Query(..., description="The state parameter containing the user ID"),
+    settings: Settings = Depends(get_settings),
+    listener_service: ListenerService = Depends(get_listener_service),
 ):
     """
     Handle the Google OAuth2 callback.
@@ -77,8 +80,8 @@ async def google_oauth2_callback(
 
     # Exchange the authorization code for tokens
     token_params = {
-        "client_id": GOOGLE_CLIENT_ID,
-        "client_secret": GOOGLE_CLIENT_SECRET,
+        "client_id": settings.GOOGLE_CLIENT_ID,
+        "client_secret": settings.GOOGLE_CLIENT_SECRET,
         "code": code,
         "grant_type": "authorization_code",
         "redirect_uri": redirect_uri,
