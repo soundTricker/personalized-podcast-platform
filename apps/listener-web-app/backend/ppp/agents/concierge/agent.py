@@ -234,8 +234,8 @@ class RadioProgramCreatingAssistantAgent(Agent):
         - Toolを呼び出す場合は、呼び出したふりをせず、確実に呼び出してください。
         
         URL:
-        https://{settings.API_BASE_URL}/listener-programs/[program_id]
-        ※ URLは markdownのリンク形式で `[プログラム詳細ページ](https://{settings.API_BASE_URL}/listener-programs/[program_id])` のように表記して
+        {settings.API_BASE_URL}/listener-programs/[program_id]
+        ※ URLは markdownのリンク形式で `[プログラム詳細ページ]({settings.API_BASE_URL}/listener-programs/[program_id])` のように表記して
 
         [フォーマット]
         日本語、マークダウン
