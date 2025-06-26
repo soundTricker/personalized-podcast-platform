@@ -242,7 +242,9 @@ export default function ChatUI({appName, icon, agentName}: ChatUIProps) {
                             }
                         } catch (e) {
                             prevLine = data;
-                            console.error(e, data);
+                            if (!(e instanceof SyntaxError)) {
+                                console.error(e, data);
+                            }
                             return;
                         }
                     });
