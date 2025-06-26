@@ -520,9 +520,9 @@ function ListenerProgramDetailPage() {
                             return;
                         }
                         try {
-                            if (!data.startsWith("{") && data.endsWith("}")
+                            if (!data.startsWith("{")
                                 && prevLine && prevLine.startsWith("{")) {
-                                data += prevLine;
+                                data = prevLine + data;
                             }
                             const event = JSON.parse(data);
                             prevLine = '';
@@ -573,7 +573,7 @@ function ListenerProgramDetailPage() {
                                 }
                             }
                         } catch (e) {
-                            prevLine = +data;
+                            prevLine = data;
                             console.error(e);
                             return;
                         }
