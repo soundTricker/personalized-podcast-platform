@@ -19,6 +19,7 @@ import logging
 import os
 from typing import AsyncGenerator
 
+import google.genai.errors
 from google import genai
 from google.adk.agents import BaseAgent
 from google.adk.agents.invocation_context import InvocationContext
@@ -116,6 +117,15 @@ Your job is narrate only the talk script that is provided below.
                 )
 
                 return
+
+            except google.genai.errors.ClientError as e:
+                if e.code == 429:
+                    logger.exception("failed to create tts audio maybe RESOURCE_EXHAUSTED, change the model once")
+                    retry += 1
+                    if retry > 5:
+                        raise e
+                    model = "gemini-2.5-pro-preview-tts" if model == "gemini-2.5-flash-preview-tts" else "gemini-2.5-pro-preview-tts"
+                    await asyncio.sleep(1 * retry)
 
             except Exception as e:
                 logger.exception("failed to create tts audio")
