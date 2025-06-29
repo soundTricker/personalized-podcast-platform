@@ -118,6 +118,8 @@ async def update_listener_program(
         private_key=listener_program.private_key,
         published_at=listener_program.published_at,
         cover_art_uri=listener_program.cover_art_uri,
+        broadcast_schedule=listener_program.broadcast_schedule,
+        broadcast_dayofweek=listener_program.broadcast_dayofweek,
     )
 
     return updated_program

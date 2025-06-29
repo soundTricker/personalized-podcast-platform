@@ -82,8 +82,8 @@ container_command_parts+=( "--host" "0.0.0.0" )
 container_command_parts+=( "--no-reload" )
 container_command_parts+=( "--enable_cloud_logging" )
 container_command_parts+=( "--trace_to_cloud" )
-container_command_parts+=( "--session_service_uri" "agentengine://${AGENT_ENGINE_ID}" )
-container_command_parts+=( "--artifact_service_uri" "gs://${ARTIFACT_BUCKET}" )
+container_command_parts+=( "--session_service_uri=agentengine://${AGENT_ENGINE_ID}" )
+container_command_parts+=( "--artifact_service_uri=gs://${ARTIFACT_BUCKET}" )
 container_command_parts+=( "/app" )
 
 # Join the array elements with a comma.

@@ -149,6 +149,10 @@ class ListenerProgramService(BaseService[ListenerProgram]):
             update_data["status"] = status
         if publish_setting is not None:
             update_data["publish_setting"] = publish_setting
+
+            if publish_setting != PublishSetting.PRIVATE:
+                update_data["published_at"] = datetime.now(tz=timezone.utc)
+
         if private_key is not None:
             update_data["private_key"] = private_key
         if cover_art_uri is not None:

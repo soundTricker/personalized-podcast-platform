@@ -66,6 +66,7 @@ def cli_api_server(
     session_service_uri: Optional[str] = None,
     artifact_service_uri: Optional[str] = None,
     memory_service_uri: Optional[str] = None,
+    eval_storage_uri: Optional[str] = None,
     trace_to_cloud: bool = False,
     enable_cloud_logging: bool = False,
 ):
@@ -81,6 +82,7 @@ def cli_api_server(
         session_service_uri=session_service_uri,
         artifact_service_uri=artifact_service_uri,
         memory_service_uri=memory_service_uri,
+        eval_storage_uri=eval_storage_uri,
         allow_origins=allow_origins,
         web=False,
         trace_to_cloud=False,

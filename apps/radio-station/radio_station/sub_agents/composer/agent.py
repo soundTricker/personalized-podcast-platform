@@ -207,6 +207,7 @@ If you want to change it, change the weight parameter gradually for small reason
 
 ```
     """,
+            before_agent_callback=self.check_invocation,
             before_model_callback=self.insert_user_content,
             output_schema=MusicPlan,
             output_key=ComposerState.task_music_plan(task_id),
@@ -214,6 +215,11 @@ If you want to change it, change the weight parameter gradually for small reason
             disallow_transfer_to_peers=True,
             include_contents="none",
         )
+
+    def check_invocation(self, callback_context: CallbackContext) -> Optional[types.Content]:
+        if ComposerState.task_music_plan(self.task_id) in callback_context.state:
+            return types.Content(parts=[types.Part.from_text(text="already finished this task")])
+        return None
 
     def insert_user_content(self, callback_context: CallbackContext, llm_request: LlmRequest) -> Optional[LlmResponse]:
         llm_request.contents.append(
@@ -243,9 +249,18 @@ class ComposerAgent(BaseAgent):
     audio_byte_array: bytearray = bytearray()
 
     def __init__(self, task_id: str, music_plan: str, seconds: int | float, **kwargs):
-        super().__init__(name=f"ComposerAgent_{task_id}", task_id=task_id, music_plan=music_plan, seconds=seconds, **kwargs)
+        super().__init__(
+            name=f"ComposerAgent_{task_id}",
+            task_id=task_id,
+            music_plan=music_plan,
+            seconds=seconds,
+            **kwargs,
+        )
 
     async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+        if ComposerState.task_music_artifact_key(task_id=self.task_id) in ctx.artifact_service.list_artifact_keys(app_name=ctx.app_name, user_id=ctx.user_id, session_id=ctx.session.id):
+            yield Event(invocation_id=ctx.invocation_id, content=types.Content(parts=[types.Part(text=f"Already generated music for: {self.task_id}")]), author=self.name)
+
         agent = MusicPlanningAgent(task_id=self.task_id, music_plan=self.music_plan, seconds=self.seconds)
         async for event in agent.run_async(ctx):
             yield event
