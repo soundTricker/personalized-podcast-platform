@@ -121,19 +121,6 @@ class TestGenerateRadioFlowAgent:
                 GlobalState.LISTENER_PROGRAM_SEGMENTS: [lps.model_dump() for lps in listener_program_segments],
             },
         )
-        #
-        # auth_runner = Runner(app_name=session.app_name, agent=GmailResearchAgent(task_id="1"), session_service=session_service, artifact_service=artifact_service)
-        #
-        # auth_request_function_call = None
-        # async for event in auth_runner.run_async(user_id=session.user_id, session_id=session.id, new_message=types.Content(parts=[types.Part(text="")])):
-        #     if auth_request_function_call := get_auth_request_function_call(event):
-        #         break
-        #
-        # auth_request_function_call = await self.auth_flow(auth_request_function_call, auth_runner, session)
-        #
-        # while auth_request_function_call:
-        #     auth_request_function_call = await self.auth_flow(auth_request_function_call, auth_runner,session)
-        #
 
         runner = Runner(app_name="test", agent=GenerateRadioFlowAgent(), session_service=session_service, artifact_service=artifact_service)
         async for event in runner.run_async(user_id="test", session_id="test", new_message=types.Content(parts=[types.Part(text="")])):
@@ -154,10 +141,6 @@ class TestGenerateRadioFlowAgent:
             mp3file = await artifact_service.load_artifact(app_name="test", user_id="test", session_id="test", filename=artifact_key)
             with open(artifact_key, "wb") as f:
                 f.write(mp3file.inline_data.data)
-        mp3file = await artifact_service.load_artifact(app_name="test", user_id="test", session_id="test", filename="audio.mp3")
-
-        with open("test_audio.mp3", "wb") as f:
-            f.write(mp3file.inline_data.data)
 
     async def auth_flow(self, auth_request_function_call, auth_runner, session):
         if not auth_request_function_call:

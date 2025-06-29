@@ -198,9 +198,9 @@ class MasteringAgent(BaseAgent):
         ## Compression
         logger.info("compression")
         track = compress_dynamic_range(mixed, threshold=-20, ratio=2.5, attack=5, release=50)
-        ## Limiting
-        logger.info("Limiting")
-        track = compress_dynamic_range(track, threshold=-1, ratio=20, attack=5, release=50)
+        ## Limiting, it too slow
+        # logger.info("Limiting")
+        # track = compress_dynamic_range(track, threshold=-1, ratio=20, attack=5, release=50)
         ## normalize
         logger.info("normalize")
         track = normalize(track)

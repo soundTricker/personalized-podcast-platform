@@ -25,7 +25,7 @@ from google.adk.agents.invocation_context import InvocationContext
 from google.adk.events import Event
 from google.genai import types
 from pydantic import Field
-from pydub import AudioSegment
+from pydub import AudioSegment, silence
 
 from radio_station.model.radio_cast import RadioCast
 from radio_station.model.talk_script import TalkScriptSegment
@@ -99,13 +99,22 @@ Your job is narrate only the talk script that is provided below.
             try:
                 logger.info(f"Sending(task_id: {self.task_id}) instruction: {instruction}")
                 response = await client.aio.models.generate_content(model=model, contents=instruction, config=self.generate_content_config)
-                logger.info(f"generated task_id: {self.task_id} {response}")
-                self.audio_byte_array = bytearray(response.candidates[-1].content.parts[0].inline_data.data)
+                logger.info(f"Generated task_id: {self.task_id}")
+
+                result = response.candidates[-1].content.parts[0].inline_data.data
+                if self.has_long_silence(AudioSegment.from_raw(io.BytesIO(result), channels=1, sample_width=2, frame_rate=24000)) and retry < 3:
+                    # 2秒以上の無音がある場合、失敗している可能性が高いのでもう一度作り直しさせる
+                    logger.warning(f"detect long silence for task_id: {self.task_id}, retry")
+                    continue
+
+                self.audio_byte_array = bytearray(result)
+
                 yield Event(
                     invocation_id=ctx.invocation_id,
                     author=self.name,
                     content=types.Content(role="model", parts=[types.Part.from_text(text=f"generated speech for {self.task_id}")]),
                 )
+
                 return
 
             except Exception as e:
@@ -114,6 +123,12 @@ Your job is narrate only the talk script that is provided below.
                 if retry > 5:
                     raise e
                 await asyncio.sleep(1 * retry)
+
+    def has_long_silence(self, audio: AudioSegment, silence_threshold=-50, chunk_size=2000):
+        start_trim = silence.detect_leading_silence(audio, silence_threshold, chunk_size)
+        end_trim = silence.detect_leading_silence(audio.reverse(), silence_threshold, chunk_size)
+
+        return start_trim > 0 or end_trim > 0
 
 
 class LLMTTSRecorderAgent(BaseAgent):

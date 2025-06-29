@@ -170,6 +170,8 @@ class CalendarResearchAgent(Agent):
             ),
             before_model_callback=self.insert_task_info,
             before_agent_callback=self.make_calendar_info,
+            disallow_transfer_to_parent=True,
+            include_contents="none",
             output_key=ResearcherState.research_result(task_id),
             **kwargs,
         )
