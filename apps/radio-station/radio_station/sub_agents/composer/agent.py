@@ -36,6 +36,7 @@ from radio_station.constants import GENERIC_MODEL, THINKING_MODEL
 from radio_station.model.music_plan import MusicPlan
 from radio_station.state_keys import ComposerState
 from radio_station.sub_agents.composer.tools import generate_music_tool
+from radio_station.utils.artifact import list_artifact
 from radio_station.utils.audio import export_wav
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -258,7 +259,7 @@ class ComposerAgent(BaseAgent):
         )
 
     async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
-        if ComposerState.task_music_artifact_key(task_id=self.task_id) in ctx.artifact_service.list_artifact_keys(app_name=ctx.app_name, user_id=ctx.user_id, session_id=ctx.session.id):
+        if ComposerState.task_music_artifact_key(task_id=self.task_id) in await list_artifact(ctx):
             yield Event(invocation_id=ctx.invocation_id, content=types.Content(parts=[types.Part(text=f"Already generated music for: {self.task_id}")]), author=self.name)
 
         agent = MusicPlanningAgent(task_id=self.task_id, music_plan=self.music_plan, seconds=self.seconds)
