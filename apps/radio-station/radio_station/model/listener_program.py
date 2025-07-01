@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, TypeAlias
+from typing import List, Optional, TypeAlias
 
 from pydantic import Field
 
@@ -36,6 +36,7 @@ class ListenerProgram(BaseModel):
     insert_music: bool = Field(description="Whether to insert music into the program", default=True)
     number_of_broadcast: int = Field(description="The number of broadcast this program", default=0)
     pro_mode: bool = Field(description="Pro Mode", default=False)
+    tts_seed: Optional[int] = Field(description="Seed value for TTS model", default=None)
 
     base_radio_casts: List[RadioCast] = Field(description="The radio casts that the program will listen", default=[])
 

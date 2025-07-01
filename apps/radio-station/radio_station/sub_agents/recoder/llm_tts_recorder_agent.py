@@ -17,7 +17,8 @@ import io
 import json
 import logging
 import os
-from typing import AsyncGenerator
+from random import randint
+from typing import AsyncGenerator, Optional
 
 import google.genai.errors
 from google import genai
@@ -44,8 +45,16 @@ class LLMTTSSpeakerAgent(BaseAgent):
     radio_casts: list[RadioCast] = Field(description="List of radio cast objects", default_factory=list)
     generate_content_config: types.GenerateContentConfig
     audio_byte_array: bytearray = Field(description="The audio byte array", default=bytearray())
+    seed: Optional[int]
 
-    def __init__(self, task_id: str, talk_script_segment: TalkScriptSegment, radio_casts: list[RadioCast], **kwargs):
+    def __init__(
+        self,
+        task_id: str,
+        talk_script_segment: TalkScriptSegment,
+        radio_casts: list[RadioCast],
+        seed: Optional[int],
+        **kwargs,
+    ):
         speech_config = types.SpeechConfig(
             language_code="ja-JP",
         )
@@ -60,9 +69,15 @@ class LLMTTSSpeakerAgent(BaseAgent):
         super().__init__(
             task_id=task_id,
             name=f"LLMTTSRecorderAgent_{task_id}",
-            generate_content_config=types.GenerateContentConfig(response_modalities=["AUDIO"], speech_config=speech_config),
+            generate_content_config=types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=speech_config,
+                temperature=0,
+                seed=seed or randint(0, 2**32 - 1),
+            ),
             talk_script_segment=talk_script_segment,
             radio_casts=radio_casts,
+            seed=seed,
             **kwargs,
         )
 
@@ -146,9 +161,24 @@ class LLMTTSRecorderAgent(BaseAgent):
     talk_script_segment: TalkScriptSegment
     radio_casts: list[RadioCast]
     audio_byte_array: bytearray = Field(description="The audio byte array", default=bytearray())
+    seed: Optional[int]
 
-    def __init__(self, task_id: str, talk_script_segment: TalkScriptSegment, radio_casts: list[RadioCast], **kwargs):
-        super().__init__(task_id=task_id, talk_script_segment=talk_script_segment, radio_casts=radio_casts, name=f"LLMTTSRecorderAgent_{task_id}", **kwargs)
+    def __init__(
+        self,
+        task_id: str,
+        talk_script_segment: TalkScriptSegment,
+        radio_casts: list[RadioCast],
+        seed: Optional[int],
+        **kwargs,
+    ):
+        super().__init__(
+            task_id=task_id,
+            talk_script_segment=talk_script_segment,
+            radio_casts=radio_casts,
+            name=f"LLMTTSRecorderAgent_{task_id}",
+            seed=seed,
+            **kwargs,
+        )
 
     async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
         if RecorderState.task_artifact_key(self.task_id) in await list_artifact(ctx):
@@ -164,6 +194,7 @@ class LLMTTSRecorderAgent(BaseAgent):
             task_id=self.task_id,
             radio_casts=self.radio_casts,
             talk_script_segment=self.talk_script_segment,
+            seed=self.seed,
         )
         yield Event(
             invocation_id=ctx.invocation_id,

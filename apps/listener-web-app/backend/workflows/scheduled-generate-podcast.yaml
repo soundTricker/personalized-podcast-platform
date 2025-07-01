@@ -55,12 +55,21 @@ main:
               from:
                 - collectionId: "ppp-listener_programs"
               where:
-                fieldFilter:
-                  field:
-                    fieldPath: "broadcastSchedule"
-                  op: "EQUAL"
-                  value:
-                    stringValue: "daily"
+                compositeFilter:
+                  op: "AND"
+                  filters:
+                    - fieldFilter:
+                        field:
+                          fieldPath: "status"
+                        op: "EQUAL"
+                        value:
+                          stringValue: "active"
+                    - fieldFilter:
+                        field:
+                          fieldPath: "broadcastSchedule"
+                        op: "EQUAL"
+                        value:
+                          stringValue: "daily"
         result: dailyProgramsResponse
 
     # Step 3: Get weekly broadcast programs from Firestore
@@ -78,6 +87,12 @@ main:
                   filters:
                     - fieldFilter:
                         field:
+                          fieldPath: "status"
+                        op: "EQUAL"
+                        value:
+                          stringValue: "active"
+                    - fieldFilter:
+                        field:
                           fieldPath: "broadcastSchedule"
                         op: "EQUAL"
                         value:
@@ -90,7 +105,7 @@ main:
                           stringValue: ${dayOfWeek}
         result: weeklyProgramsResponse
     # Step 4: Extract active program IDs
-    - 配信対象プログラムのマージ:
+    - 配信対象プログラムのマージ準備:
         assign:
           - listenerProgramIds: []
           # Process daily programs
@@ -98,7 +113,15 @@ main:
           # Process weekly programs
           - weeklyPrograms: ${default(weeklyProgramsResponse, [])}
           # Combine all programs
-          - allPrograms: ${list.concat(dailyPrograms, weeklyPrograms)}
+          - allPrograms: ${dailyPrograms}
+    - 配信対象プログラムのマージ:
+        for:
+            value: doc
+            in: ${weeklyPrograms}
+            steps:
+                - allProgramsへconcat:
+                    assign:
+                        - allPrograms: ${list.concat(allPrograms, doc)}
 
     # Step 5: Filter active programs and extract IDs
     - 配信対象のフィルタリング:
@@ -106,9 +129,13 @@ main:
           value: doc
           in: ${allPrograms}
           steps:
-            - プログラムがアクティブかチェック:
+            - 来週配信日を取得:
+                assign:
+                  - today: ${time.parse(text.split(time.format(sys.now()), "T")[0] + "T00:00:00.000000000Z")}
+                  - lastBroadcastDate: ${time.parse(text.split(default(map.get(doc, ["document", "fields", "lastBroadcastedAt", "timestampValue"]), "1955-01-01T00:00:00.000000000Z"), "T")[0] + "T00:00:00.000000000Z")}
+            - プログラムが本日配信済みかチェック:
                 switch:
-                  - condition: ${default(map.get(doc, ["document", "fields", "status", "stringValue"]), "") == "active"}
+                  - condition: ${lastBroadcastDate < today}
                     steps:
                       - 対象のIDを集計:
                           assign:

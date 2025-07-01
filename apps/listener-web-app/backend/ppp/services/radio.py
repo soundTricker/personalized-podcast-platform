@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import datetime
 import json
 import logging
 from typing import AsyncIterable
+from zoneinfo import ZoneInfo
 
 from fastapi import Depends, HTTPException, status
 from google.adk.events import Event
@@ -214,7 +215,6 @@ class RadioService:
             history.status = ProgramBroadcastHistoryStatus.SUCCESS
             if not dry_run:
                 history.artifact_id = "audio.mp3"
-                print(history.gcs_uri())
                 artifact = await self.chat_api.load_artifact(user_id=listener_id, session_id=new_session.id, artifact_id=history.artifact_id)
                 history.size = len(artifact.inline_data.data)
 
@@ -246,6 +246,7 @@ class RadioService:
                     program.status = ProgramStatus.ACTIVE
 
             program.number_of_broadcast += 1
+            program.last_broadcasted_At = datetime.datetime.now(tz=ZoneInfo("Asia/Tokyo"))
             await program.save()
 
         except Exception as e:

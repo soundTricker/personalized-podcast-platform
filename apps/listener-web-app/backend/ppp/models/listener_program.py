@@ -87,6 +87,8 @@ class ListenerProgram(BaseModel):
     # Additional timestamps
     published_at: datetime | None = None
 
+    last_broadcasted_at: datetime | None = None
+
     @model_validator(mode="after")
     def validate_private_key(self) -> Self:
         if self.publish_setting == PublishSetting.PRIVATE or self.publish_setting == PublishSetting.PUBLISH:
