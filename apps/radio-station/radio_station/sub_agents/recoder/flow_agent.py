@@ -40,6 +40,7 @@ class RecordingFlowAgent(BaseAgent):
             yield Event(invocation_id=ctx.invocation_id, author=self.name, content=types.ModelContent(parts=[types.Part.from_text(text="already finished this task")]))
             return
 
+        program = GlobalState.get_listener_program(ctx.session.state)
         radio_casts = GlobalState.get_radio_casts(ctx.session.state)
         talk_script_segments = WriterState.get_talk_script_segments(ctx.session.state)
         talk_scripts = list(itertools.chain.from_iterable([tss.scripts for tss in talk_script_segments]))
@@ -94,7 +95,7 @@ class RecordingFlowAgent(BaseAgent):
 
                 await load_artifact(ctx, f"voice_{talk_script_segment.id}.wav")
 
-                agents.append(LLMTTSRecorderAgent(task_id=talk_script_segment.id, talk_script_segment=talk_script_segment, radio_casts=segment_radio_casts))
+                agents.append(LLMTTSRecorderAgent(task_id=talk_script_segment.id, talk_script_segment=talk_script_segment, radio_casts=segment_radio_casts, seed=program.tts_seed))
 
             async for event in SemaphoreParallelAgent(name="ParallelRecordingAgent", sub_agents=agents, concurrency=3).run_async(ctx):
                 yield event

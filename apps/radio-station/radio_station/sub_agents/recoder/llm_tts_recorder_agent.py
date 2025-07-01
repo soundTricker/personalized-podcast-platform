@@ -17,7 +17,6 @@ import io
 import json
 import logging
 import os
-from random import randint
 from typing import AsyncGenerator, Optional
 
 import google.genai.errors
@@ -73,7 +72,7 @@ class LLMTTSSpeakerAgent(BaseAgent):
                 response_modalities=["AUDIO"],
                 speech_config=speech_config,
                 temperature=0,
-                seed=seed or randint(0, 2**32 - 1),
+                seed=seed,
             ),
             talk_script_segment=talk_script_segment,
             radio_casts=radio_casts,

@@ -14,6 +14,7 @@
 
 from datetime import datetime
 from enum import Enum
+from random import randint
 
 from pydantic import model_validator
 from typing_extensions import Self
@@ -89,6 +90,8 @@ class ListenerProgram(BaseModel):
 
     last_broadcasted_at: datetime | None = None
 
+    tts_seed: int | None = None
+
     @model_validator(mode="after")
     def validate_private_key(self) -> Self:
         if self.publish_setting == PublishSetting.PRIVATE or self.publish_setting == PublishSetting.PUBLISH:
@@ -99,4 +102,10 @@ class ListenerProgram(BaseModel):
 
         if len(self.private_key) < 32:
             raise ValueError("Private key must be at least 32 characters long")
+        return self
+
+    @model_validator(mode="after")
+    def set_tts_seed(self) -> Self:
+        if self.tts_seed is None:
+            self.tts_seed = randint(0, 2**32 - 1)
         return self
