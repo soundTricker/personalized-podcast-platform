@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import os
 from typing import Optional
 
@@ -20,7 +19,6 @@ import click
 import uvicorn
 from google.adk.cli.cli_tools_click import adk_services_options, fast_api_common_options
 from google.adk.cli.fast_api import get_fast_api_app
-from google.adk.cli.utils import logs
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 
@@ -70,7 +68,7 @@ def cli_api_server(
     trace_to_cloud: bool = False,
     enable_cloud_logging: bool = False,
 ):
-    logs.setup_adk_logger(getattr(logging, log_level.upper()))
+    # logs.setup_adk_logger(getattr(logging, log_level.upper()))
 
     if trace_to_cloud:
         from radio_station import tracing

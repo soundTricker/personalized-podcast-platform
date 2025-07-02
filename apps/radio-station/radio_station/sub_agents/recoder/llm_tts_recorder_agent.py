@@ -116,6 +116,11 @@ Your job is narrate only the talk script that is provided below.
                 response = await client.aio.models.generate_content(model=model, contents=instruction, config=self.generate_content_config)
                 logger.info(f"Generated task_id: {self.task_id}")
 
+                if response.candidates[-1].content is None:
+                    msg = f"Candidate not found for task_id: {self.task_id} response: {response.model_dump_json()}"
+                    logger.error(msg)
+                    raise Exception(msg)
+
                 result = response.candidates[-1].content.parts[0].inline_data.data
                 if self.has_long_silence(AudioSegment.from_raw(io.BytesIO(result), channels=1, sample_width=2, frame_rate=24000)) and retry < 3:
                     # 2秒以上の無音がある場合、失敗している可能性が高いのでもう一度作り直しさせる
@@ -136,21 +141,21 @@ Your job is narrate only the talk script that is provided below.
 
             except google.genai.errors.ClientError as e:
                 if e.code == 429:
-                    logger.exception("failed to create tts audio maybe RESOURCE_EXHAUSTED, change the model once")
+                    logger.exception(f"failed to create tts audio maybe RESOURCE_EXHAUSTED, change the model once {e}")
                     retry += 1
                     if retry > 5:
                         raise e
                     model = "gemini-2.5-pro-preview-tts" if model == "gemini-2.5-flash-preview-tts" else "gemini-2.5-pro-preview-tts"
                     await asyncio.sleep(1 * retry)
                     continue
-                logger.exception("failed to create tts audio")
+                logger.exception(f"failed to create tts audio {e}")
                 retry += 1
                 if retry > 5:
                     raise e
                 await asyncio.sleep(1 * retry)
 
             except Exception as e:
-                logger.exception("failed to create tts audio")
+                logger.exception(f"failed to create tts audio {e}")
                 retry += 1
                 if retry > 5:
                     raise e

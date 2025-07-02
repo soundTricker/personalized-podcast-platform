@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from random import randint
+from typing import List, Optional, Self, TypeAlias
 
-from typing import List, Optional, TypeAlias
-
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from .base_model import BaseModel
 from .listener import ListenerID
@@ -52,3 +52,9 @@ Main Radio Casts:
 {"\n".join([rc.to_llm_text() for rc in self.base_radio_casts]) if self.base_radio_casts else ""}
 =====
         """
+
+    @model_validator(mode="after")
+    def set_tts_seed(self) -> Self:
+        if self.tts_seed is None or self.tts_seed > 2147483647:
+            self.tts_seed = randint(0, 2147483647 - 1)
+        return self

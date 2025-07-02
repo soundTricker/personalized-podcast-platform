@@ -526,8 +526,8 @@ function ListenerProgramDetailPage() {
                             }
                             const event = JSON.parse(data);
                             prevLine = '';
-                            if (event.error) {
-                                dispatch({type: "error", payload: event.error});
+                            if (event.error || event.errorMessage || event.errorCode) {
+                                dispatch({type: "error", payload: event.error || event.errorMessage || event.errorCode});
                                 return;
                             }
 
