@@ -119,7 +119,9 @@ Your job is narrate only the talk script that is provided below.
                 result = response.candidates[-1].content.parts[0].inline_data.data
                 if self.has_long_silence(AudioSegment.from_raw(io.BytesIO(result), channels=1, sample_width=2, frame_rate=24000)) and retry < 3:
                     # 2秒以上の無音がある場合、失敗している可能性が高いのでもう一度作り直しさせる
+                    retry += 1
                     logger.warning(f"detect long silence for task_id: {self.task_id}, retry")
+                    await asyncio.sleep(1 * retry)
                     continue
 
                 self.audio_byte_array = bytearray(result)
@@ -140,6 +142,12 @@ Your job is narrate only the talk script that is provided below.
                         raise e
                     model = "gemini-2.5-pro-preview-tts" if model == "gemini-2.5-flash-preview-tts" else "gemini-2.5-pro-preview-tts"
                     await asyncio.sleep(1 * retry)
+                    continue
+                logger.exception("failed to create tts audio")
+                retry += 1
+                if retry > 5:
+                    raise e
+                await asyncio.sleep(1 * retry)
 
             except Exception as e:
                 logger.exception("failed to create tts audio")

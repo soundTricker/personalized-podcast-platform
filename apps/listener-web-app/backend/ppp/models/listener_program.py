@@ -107,5 +107,5 @@ class ListenerProgram(BaseModel):
     @model_validator(mode="after")
     def set_tts_seed(self) -> Self:
         if self.tts_seed is None:
-            self.tts_seed = randint(0, 2**32 - 1)
+            self.tts_seed = randint(0, 2147483647 - 1)
         return self
