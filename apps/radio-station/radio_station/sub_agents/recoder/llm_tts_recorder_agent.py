@@ -72,7 +72,7 @@ class LLMTTSSpeakerAgent(BaseAgent):
                 response_modalities=["AUDIO"],
                 speech_config=speech_config,
                 temperature=0,
-                seed=seed,
+                # seed=seed,
             ),
             talk_script_segment=talk_script_segment,
             radio_casts=radio_casts,
