@@ -246,7 +246,7 @@ class RadioService:
                     program.status = ProgramStatus.ACTIVE
 
             program.number_of_broadcast += 1
-            program.last_broadcasted_At = datetime.datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+            program.last_broadcasted_at = datetime.datetime.now(tz=ZoneInfo("Asia/Tokyo"))
             await program.save()
 
         except Exception as e:
