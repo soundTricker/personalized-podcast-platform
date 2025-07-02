@@ -135,7 +135,7 @@ main:
                   - lastBroadcastDate: ${time.parse(text.split(default(map.get(doc, ["document", "fields", "lastBroadcastedAt", "timestampValue"]), "1955-01-01T00:00:00.000000000Z"), "T")[0] + "T00:00:00.000000000Z")}
             - プログラムが本日配信済みかチェック:
                 switch:
-                  - condition: ${lastBroadcastDate < today}
+                  - condition: ${"document" in doc and lastBroadcastDate < today}
                     steps:
                       - 対象のIDを集計:
                           assign:

@@ -72,7 +72,6 @@ class LLMTTSSpeakerAgent(BaseAgent):
                 response_modalities=["AUDIO"],
                 speech_config=speech_config,
                 temperature=0,
-                # seed=seed,
             ),
             talk_script_segment=talk_script_segment,
             radio_casts=radio_casts,
@@ -88,16 +87,14 @@ class LLMTTSSpeakerAgent(BaseAgent):
 
         model = "gemini-2.5-pro-preview-tts" if program.pro_mode else "gemini-2.5-flash-preview-tts"
 
-        instruction = await secret_instruction(
+        self.generate_content_config.system_instruction = await secret_instruction(
             "llm_tts_recorder_instruction",
             """You are a real-time native Japanese narrator for radio program.
 Your job is narrate only the talk script that is provided below.
         """,
         )(ctx)
 
-        instruction = (
-            instruction
-            + f"""
+        content = f"""
         [Radio Casts]
         {"------\n".join([rc.to_llm_text() for rc in self.radio_casts])}
 
@@ -108,12 +105,15 @@ Your job is narrate only the talk script that is provided below.
         {self.talk_script_segment.to_talk_script_text(radio_casts=self.radio_casts)}
         </Task Scripts>
         """
-        )
 
         while True:
             try:
-                logger.info(f"Sending(task_id: {self.task_id}) instruction: {instruction}")
-                response = await client.aio.models.generate_content(model=model, contents=instruction, config=self.generate_content_config)
+                logger.info(f"Sending(task_id: {self.task_id}) instruction: {content}")
+                response = await client.aio.models.generate_content(
+                    model=model,
+                    contents=content,
+                    config=self.generate_content_config,
+                )
                 logger.info(f"Generated task_id: {self.task_id}")
 
                 if response.candidates[-1].content is None:
