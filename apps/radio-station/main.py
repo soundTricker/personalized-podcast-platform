@@ -67,6 +67,7 @@ def cli_api_server(
     eval_storage_uri: Optional[str] = None,
     trace_to_cloud: bool = False,
     enable_cloud_logging: bool = False,
+    a2a: bool = False,
 ):
     # logs.setup_adk_logger(getattr(logging, log_level.upper()))
 
@@ -84,6 +85,7 @@ def cli_api_server(
         allow_origins=allow_origins,
         web=False,
         trace_to_cloud=False,
+        a2a=a2a,
     )
     if trace_to_cloud:
         FastAPIInstrumentor.instrument_app(app)

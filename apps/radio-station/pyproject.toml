@@ -100,3 +100,4 @@ env_files = [
 
 [tool.uv.sources]
 weatherapipython = { git = "https://github.com/weatherapicom/python.git" }
+google-adk = { git = "https://github.com/soundTricker/adk-python.git" }

@@ -463,7 +463,7 @@ wheels = [
 [[package]]
 name = "google-adk"
 version = "1.5.0"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/soundTricker/adk-python.git#f7096466da113d2481d92c54715e6e408c0455df" }
 dependencies = [
     { name = "anyio" },
     { name = "authlib" },
@@ -487,14 +487,11 @@ dependencies = [
     { name = "requests" },
     { name = "sqlalchemy" },
     { name = "starlette" },
+    { name = "tenacity" },
     { name = "typing-extensions" },
     { name = "tzlocal" },
     { name = "uvicorn" },
     { name = "websockets" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a9/d1/cd61316e871b53d0fb0cfc4418bc6f24ed5da54dd17a8c0b9eef9662123f/google_adk-1.5.0.tar.gz", hash = "sha256:917770107963714362b8925acf39d01a6d84701ba7c30d0f4f19a47296b6faab", size = 1158395, upload-time = "2025-06-25T21:11:57.761Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/0d/06399277f6e5b60b74328228c82909a0f866e2f839675b8310855aa43921/google_adk-1.5.0-py3-none-any.whl", hash = "sha256:f2ce47fa9a56097664d1c7499c867954326ca80fe891421c4c72ee3a70e19e55", size = 1330171, upload-time = "2025-06-25T21:11:55.882Z" },
 ]
 
 [[package]]
@@ -1952,7 +1949,7 @@ requires-dist = [
     { name = "aiohttp", specifier = ">=3.12.13" },
     { name = "fastapi", specifier = ">=0.115.13" },
     { name = "feedparser", specifier = ">=6.0.11" },
-    { name = "google-adk", specifier = "==1.5.0" },
+    { name = "google-adk", git = "https://github.com/soundTricker/adk-python.git" },
     { name = "google-api-python-client", specifier = ">=2.173.0" },
     { name = "google-cloud-aiplatform", extras = ["adk", "agent-engines"], specifier = ">=1.101.0" },
     { name = "google-cloud-aiplatform", extras = ["evaluation"], specifier = ">=1.101.0" },
