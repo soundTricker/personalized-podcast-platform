@@ -515,15 +515,14 @@ function ListenerProgramDetailPage() {
                         .map(line => `data: ${line}`);
                     lines.forEach((line) => {
                         let data = line.replace(/^data:\s*/, '');
-                        console.log(data);
                         if (!data || data === "") {
                             return;
                         }
                         try {
-                            if (!data.startsWith("{")
-                                && prevLine && prevLine.startsWith("{")) {
+                            if (!data.startsWith("{") && prevLine && prevLine.startsWith("{")) {
                                 data = prevLine + data;
                             }
+                            console.log(data);
                             const event = JSON.parse(data);
                             prevLine = '';
                             if (event.error || event.errorMessage || event.errorCode) {
@@ -574,7 +573,9 @@ function ListenerProgramDetailPage() {
                             }
                         } catch (e) {
                             prevLine = data;
-                            console.error(e);
+                            if (!(e instanceof SyntaxError)) {
+                                console.error(e, data);
+                            }
                             return;
                         }
                     });

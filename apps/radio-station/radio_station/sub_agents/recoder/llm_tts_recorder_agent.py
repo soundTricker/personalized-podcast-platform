@@ -145,7 +145,7 @@ Your job is narrate only the talk script that is provided below.
                     retry += 1
                     if retry > 5:
                         raise e
-                    model = "gemini-2.5-pro-preview-tts" if model == "gemini-2.5-flash-preview-tts" else "gemini-2.5-pro-preview-tts"
+                    model = "gemini-2.5-pro-preview-tts" if model == "gemini-2.5-flash-preview-tts" else "gemini-2.5-flash-preview-tts"
                     await asyncio.sleep(1 * retry)
                     continue
                 logger.exception(f"failed to create tts audio {e}")
