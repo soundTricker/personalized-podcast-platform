@@ -42,7 +42,7 @@ class TestLLMTTSRecorderAgent:
         # セッションサービスとランナーの設定
         runner = InMemoryRunner(
             app_name="test",
-            agent=LLMTTSRecorderAgent(task_id="test_task_id", talk_script_segment=talk_script_segment, radio_casts=radio_casts, seed=0),
+            agent=LLMTTSRecorderAgent(task_id="test_task_id", talk_script_segment=talk_script_segment, radio_casts=radio_casts[:2], seed=0),
         )
 
         session_service = runner.session_service
