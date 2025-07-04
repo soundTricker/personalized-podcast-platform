@@ -20,20 +20,21 @@ from google.adk.runners import InMemoryRunner
 from google.genai import types
 
 from radio_station.model.talk_script import TalkScriptSegment
+from radio_station.state_keys import GlobalState
 from radio_station.sub_agents.recoder.llm_tts_recorder_agent import LLMTTSRecorderAgent
 
-file_handler = logging.FileHandler('test.log')
+file_handler = logging.FileHandler("test.log")
 file_handler.setLevel(logging.DEBUG)
 
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout), file_handler])  # noqa: F821
 logger = logging.getLogger(__name__)
 
+
 class TestLLMTTSRecorderAgent:
     """LLMRecorderAgentクラスのユニットテスト"""
 
     @pytest.mark.asyncio
-    async def test_real(self, radio_casts, talk_scripts_dicts):
-
+    async def test_real(self, radio_casts, talk_scripts_dicts, listener_program):
         talk_script_segments = [TalkScriptSegment(**tsd) for tsd in talk_scripts_dicts]
         talk_script_segment = talk_script_segments[0]
 
@@ -41,18 +42,14 @@ class TestLLMTTSRecorderAgent:
         # セッションサービスとランナーの設定
         runner = InMemoryRunner(
             app_name="test",
-            agent=LLMTTSRecorderAgent(task_id="test_task_id", talk_script_segment=talk_script_segment, radio_casts=radio_casts),
+            agent=LLMTTSRecorderAgent(task_id="test_task_id", talk_script_segment=talk_script_segment, radio_casts=radio_casts, seed=0),
         )
 
         session_service = runner.session_service
         artifact_service = runner.artifact_service
 
         # セッションの作成と状態の設定
-        session_service.create_session(
-            app_name="test",
-            user_id="test",
-            session_id="test"
-        )
+        await session_service.create_session(app_name="test", user_id="test", session_id="test", state={GlobalState.LISTENER_PROGRAM: listener_program.model_dump()})
 
         # エージェントの実行
         async for event in runner.run_async(user_id="test", session_id="test", new_message=types.Content(parts=[types.Part(text="speech")])):

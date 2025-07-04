@@ -21,6 +21,7 @@ from typing import AsyncGenerator, Optional
 
 import google.genai.errors
 from google import genai
+from google.adk import Agent
 from google.adk.agents import BaseAgent
 from google.adk.agents.invocation_context import InvocationContext
 from google.adk.events import Event
@@ -106,6 +107,8 @@ Your job is narrate only the talk script that is provided below.
         </Task Scripts>
         """
 
+        change_model = False
+
         while True:
             try:
                 logger.info(f"Sending(task_id: {self.task_id}) instruction: {content}")
@@ -141,11 +144,13 @@ Your job is narrate only the talk script that is provided below.
 
             except google.genai.errors.ClientError as e:
                 if e.code == 429:
-                    logger.exception(f"failed to create tts audio maybe RESOURCE_EXHAUSTED, change the model once {e}")
+                    logger.exception(f"failed to create tts audio maybe RESOURCE_EXHAUSTED, change the model({model}) once {e}")
                     retry += 1
                     if retry > 5:
                         raise e
-                    model = "gemini-2.5-pro-preview-tts" if model == "gemini-2.5-flash-preview-tts" else "gemini-2.5-flash-preview-tts"
+                    if not change_model:
+                        model = "gemini-2.5-pro-preview-tts" if model == "gemini-2.5-flash-preview-tts" else "gemini-2.5-flash-preview-tts"
+                        change_model = True
                     await asyncio.sleep(1 * retry)
                     continue
                 logger.exception(f"failed to create tts audio {e}")
@@ -232,3 +237,25 @@ class LLMTTSRecorderAgent(BaseAgent):
         part = types.Part.from_bytes(data=export_wav(audio_segment), mime_type="audio/wav")
 
         await save_artifact(ctx, RecorderState.task_artifact_key(self.task_id), part)
+
+
+def add_content(self, callback_context: CallbackContext, llm_request: LlmRequest) -> Optional[LlmResponse]:
+    llm_request.contents.append(types.UserContent(parts=[types.Part.from_text(text="""<DATA>ここで埋め込むよ</DATA>""")]))
+
+
+class TestAgent(Agent):
+    def __init__(self, data):
+        super().__init__(
+            name="TestAgent",
+            model="gemini-2.5-flash",
+            instruction=f"""
+            データは<DATA>から読み込んで
+            
+            <DATA>
+            {data}
+            </DATA>
+            """,
+        )
+
+
+agemt = TestAgent({"data": "data"})

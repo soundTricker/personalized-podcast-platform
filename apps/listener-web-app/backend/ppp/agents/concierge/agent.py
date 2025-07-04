@@ -17,7 +17,6 @@ from typing import Optional
 
 from google.adk import Agent
 from google.adk.agents.callback_context import CallbackContext
-from google.adk.models.lite_llm import LiteLlm
 from google.adk.models.llm_request import LlmRequest
 from google.adk.models.llm_response import LlmResponse
 from google.adk.tools.mcp_tool import MCPToolset, SseConnectionParams
@@ -52,7 +51,7 @@ os.environ["VERTEXAI_LOCATION"] = "global"
 class RadioProgramCreatingAssistantAgent(Agent):
     def __init__(self):
         super().__init__(
-            model=LiteLlm("vertex_ai/gemini-2.5-flash-lite-preview-06-17"),
+            model="gemini-2.5-flash",
             tools=[mcp_toolset, rss_rag_tool],
             name="RadioProgramCreatingAssistantAgent",
             description="AI Assistant to create a radio program and radio program segments",
