@@ -87,14 +87,16 @@ class LLMTTSSpeakerAgent(BaseAgent):
 
         model = "gemini-2.5-pro-preview-tts" if program.pro_mode else "gemini-2.5-flash-preview-tts"
 
-        self.generate_content_config.system_instruction = await secret_instruction(
+        content = await secret_instruction(
             "llm_tts_recorder_instruction",
             """You are a real-time native Japanese narrator for radio program.
 Your job is narrate only the talk script that is provided below.
         """,
         )(ctx)
 
-        content = f"""
+        content = (
+            content
+            + f"""
         [Radio Casts]
         {"------\n".join([rc.to_llm_text() for rc in self.radio_casts])}
 
@@ -105,6 +107,7 @@ Your job is narrate only the talk script that is provided below.
         {self.talk_script_segment.to_talk_script_text(radio_casts=self.radio_casts)}
         </Task Scripts>
         """
+        )
 
         change_model = False
 
