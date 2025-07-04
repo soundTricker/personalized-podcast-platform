@@ -132,6 +132,8 @@ spec:
               cpu: "1"
               memory: 1Gi
           env:
+            - name: GOOGLE_GENAI_USE_VERTEXAI
+              value: true
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "telemetry.googleapis.com:443"
             - name: FRONTEND_URL
