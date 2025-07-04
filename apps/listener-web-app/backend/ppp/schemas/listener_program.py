@@ -88,6 +88,7 @@ class ListenerProgramMCPCreateSchema(ListenerProgramCreateSchema):
     Schema for creating a ListenerProgram with MCP.
     """
 
+    cover_art_uri: str = Field(description="ポッドキャストカバーアート画像のURI（gs://形式）空文字列のみ可 agentからは設定不可能", default="", min_length=0)
     private_key: str = Field(description="限定公開用のプライベートキー（32文字以上、limited設定時に必須）", min_length=0, default="")
 
     @model_validator(mode="after")
